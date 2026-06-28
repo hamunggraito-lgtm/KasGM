@@ -1,0 +1,2430 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>GAJAH MAS · Financial Dashboard</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js">
+    </script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js">
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+            background: #f1f5f9;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #0f172a;
+        }
+        .container {
+            max-width: 1440px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08), 0 8px 24px rgba(0, 0, 0, 0.02);
+            padding: 24px 32px 32px;
+        }
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #eef2f6;
+            margin-bottom: 20px;
+        }
+        .app-header .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .app-header .brand .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        }
+        .app-header .brand h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .app-header .brand h1 span {
+            font-weight: 400;
+            font-size: 14px;
+            color: #64748b;
+        }
+        .app-header .periode {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+            background: #f1f5f9;
+            padding: 6px 16px;
+            border-radius: 100px;
+            border: 1px solid #e2e8f0;
+        }
+        .tab-nav {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 4px;
+            border: 1px solid #eef2f6;
+        }
+        .tab-btn {
+            padding: 8px 20px;
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            font-weight: 500;
+            color: #64748b;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .tab-btn i {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+        .tab-btn:hover {
+            background: #eef2f6;
+            color: #1e293b;
+        }
+        .tab-btn.active {
+            background: #ffffff;
+            color: #1e3a8a;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            font-weight: 600;
+        }
+        .tab-btn.active i {
+            opacity: 1;
+            color: #2563eb;
+        }
+        .tab-content {
+            display: none;
+            animation: fadeUp 0.3s ease;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .card {
+            background: #ffffff;
+            padding: 16px 18px;
+            border-radius: 16px;
+            border: 1px solid #eef2f6;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #2563eb;
+            border-radius: 16px 16px 0 0;
+        }
+        .card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+            transform: translateY(-2px);
+        }
+        .card .label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .card .value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 4px;
+        }
+        .card.green::before {
+            background: #059669;
+        }
+        .card.orange::before {
+            background: #d97706;
+        }
+        .card.teal::before {
+            background: #0d9488;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 1px solid #eef2f6;
+            background: #ffffff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+            min-width: 600px;
+        }
+        th {
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            padding: 10px 12px;
+            text-align: center;
+            border-bottom: 2px solid #eef2f6;
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        td {
+            padding: 8px 12px;
+            text-align: center;
+            border-bottom: 1px solid #f1f5f9;
+            background: #ffffff;
+            font-size: 12.5px;
+            color: #1e293b;
+        }
+        tr:hover td {
+            background: #fafcff;
+        }
+        tr.total-row td {
+            background: #f8fafc;
+            font-weight: 700;
+            border-top: 2px solid #e2e8f0;
+            color: #0f172a;
+        }
+        .text-left {
+            text-align: left;
+            font-weight: 500;
+            color: #0f172a;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .penjualan-grid-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-bottom: 26px;
+        }
+        .penjualan-metric-card {
+            background: white;
+            padding: 8px 12px 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #eef2f6;
+            border-bottom: 2px solid #dce2ec;
+        }
+        .penjualan-metric-card .label {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: #64748b;
+            font-weight: 600;
+        }
+        .penjualan-metric-card .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 1px;
+            color: #0b2a44;
+        }
+        .penjualan-metric-card .sub {
+            font-size: 0.7rem;
+            color: #475569;
+        }
+        .badge {
+            display: inline-block;
+            padding: 1px 10px;
+            border-radius: 30px;
+            font-size: 0.6rem;
+            font-weight: 600;
+            background: #e9edf2;
+            color: #1e293b;
+        }
+        .badge-cash {
+            background: #e3f0eb;
+            color: #0f4c3a;
+        }
+        .badge-tempo {
+            background: #e3eaf5;
+            color: #1a3f6e;
+        }
+        .flex-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 24px;
+            margin-bottom: 10px;
+            font-size: 0.8rem;
+        }
+        .flex-stats strong {
+            font-weight: 600;
+            color: #0b2a44;
+        }
+        .penjualan-upload-box {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            background: #f8fafc;
+            padding: 10px 20px;
+            border-radius: 100px;
+            border: 1.5px dashed #cbd5e1;
+            cursor: pointer;
+            transition: 0.25s;
+        }
+        .penjualan-upload-box:hover {
+            border-color: #2563eb;
+            background: #f0f7ff;
+        }
+        .penjualan-upload-box input {
+            display: none;
+        }
+        .btn-reset {
+            font-size: 0.7rem;
+            background: #fee2e2;
+            color: #991b1b;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .btn-reset:hover {
+            background: #fecaca;
+        }
+        .file-info {
+            font-size: 0.7rem;
+            color: #475569;
+            background: #f1f5f9;
+            padding: 2px 12px;
+            border-radius: 30px;
+        }
+        .empty-state {
+            text-align: center;
+            color: #94a3b8;
+            padding: 24px 0;
+            font-size: 0.85rem;
+        }
+        .footnote {
+            margin-top: 8px;
+            color: #64748b;
+            font-size: 0.7rem;
+            border-top: 1px solid #edf2f7;
+            padding-top: 8px;
+        }
+        .upload-section {
+            background: #fafcff;
+            padding: 12px 18px;
+            border-radius: 14px;
+            border: 1px solid #eef2f6;
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 16px;
+        }
+        .upload-section label {
+            font-weight: 600;
+            font-size: 12px;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .upload-section input[type="file"] {
+            font-size: 12px;
+            padding: 4px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: #fff;
+            font-family: 'Inter', sans-serif;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 18px;
+            border: none;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 12px;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #eef2f6;
+            color: #1e293b;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.20);
+        }
+        .btn-primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+        .btn-success {
+            background: #059669;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.20);
+        }
+        .btn-success:hover {
+            background: #047857;
+            transform: translateY(-1px);
+        }
+        .btn-warning {
+            background: #d97706;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.20);
+        }
+        .btn-warning:hover {
+            background: #b45309;
+            transform: translateY(-1px);
+        }
+        .btn-purple {
+            background: #7c3aed;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.20);
+        }
+        .btn-purple:hover {
+            background: #6d28d9;
+            transform: translateY(-1px);
+        }
+        .btn-danger {
+            background: #dc2626;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.20);
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+            transform: translateY(-1px);
+        }
+        .btn-sm {
+            padding: 4px 14px;
+            font-size: 11px;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1.5px solid #cbd5e1;
+            color: #475569;
+        }
+        .btn-outline:hover {
+            border-color: #2563eb;
+            color: #2563eb;
+            background: #f0f7ff;
+        }
+        .status {
+            padding: 10px 18px;
+            border-radius: 12px;
+            margin: 12px 0 16px 0;
+            display: none;
+            font-weight: 500;
+            font-size: 13px;
+            border-left: 4px solid transparent;
+        }
+        .status.loading {
+            display: block;
+            background: #eef2ff;
+            color: #1e40af;
+            border-left-color: #2563eb;
+        }
+        .status.success {
+            display: block;
+            background: #ecfdf5;
+            color: #065f46;
+            border-left-color: #059669;
+        }
+        .status.error {
+            display: block;
+            background: #fef2f2;
+            color: #991b1b;
+            border-left-color: #dc2626;
+        }
+        .status.info {
+            display: block;
+            background: #eff6ff;
+            color: #1e40af;
+            border-left-color: #3b82f6;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .card-kas {
+            background: #ffffff;
+            border: 1px solid #eef2f6;
+            border-radius: 16px;
+            padding: 16px 18px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        }
+        .card-kas h3 {
+            font-size: 11px;
+            font-weight: 700;
+            color: #1e40af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .card-kas.saldo-final {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+        .card-kas.saldo-final h3 {
+            color: #15803d;
+        }
+        .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px dashed #f1f5f9;
+            font-size: 12px;
+        }
+        .row:last-child {
+            border-bottom: none;
+        }
+        .row.total {
+            font-weight: 700;
+            color: #0f172a;
+            border-top: 2px solid #e2e8f0;
+            padding-top: 8px;
+            margin-top: 4px;
+            border-bottom: none;
+        }
+        .row.total-final {
+            font-weight: 700;
+            color: #15803d;
+            border-top: 2px solid #bbf7d0;
+            padding-top: 8px;
+            margin-top: 4px;
+            border-bottom: none;
+        }
+        .angka {
+            font-weight: 600;
+            min-width: 80px;
+            text-align: right;
+            font-size: 12.5px;
+        }
+        .subtext {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 8px;
+            font-style: italic;
+        }
+        .flex-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .btn-exit {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid #e2e8f0;
+            border-radius: 100px;
+            padding: 8px 18px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+            cursor: pointer;
+            transition: 0.25s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 999;
+            font-family: 'Inter', sans-serif;
+        }
+        .btn-exit:hover {
+            background: #fee2e2;
+            border-color: #dc2626;
+            color: #b91c1c;
+            transform: scale(1.02);
+        }
+        .footer {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 11px;
+            color: #94a3b8;
+            border-top: 1px solid #eef2f6;
+            padding-top: 18px;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+            .container {
+                padding: 16px;
+            }
+            .app-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            .app-header .brand h1 {
+                font-size: 18px;
+            }
+            .tab-btn {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+            .grid-2,
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+            .card .value {
+                font-size: 17px;
+            }
+            table {
+                font-size: 11px;
+                min-width: 480px;
+            }
+            th,
+            td {
+                padding: 6px 8px;
+            }
+            .btn-exit {
+                bottom: 12px;
+                right: 12px;
+                padding: 6px 14px;
+                font-size: 11px;
+            }
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 12px;
+            }
+            .app-header .brand .logo-icon {
+                width: 34px;
+                height: 34px;
+                font-size: 16px;
+            }
+            .tab-btn {
+                font-size: 10px;
+                padding: 4px 10px;
+            }
+            .summary {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+            .card {
+                padding: 12px 14px;
+            }
+            .card .value {
+                font-size: 15px;
+            }
+            .penjualan-grid-metrics {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .table-wrapper::-webkit-scrollbar {
+            height: 6px;
+        }
+        .table-wrapper::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="btn-exit" onclick="keluarAplikasi()">
+        <i class="fas fa-sign-out-alt"></i> Keluar
+    </button>
+
+    <div class="container">
+
+        <header class="app-header">
+            <div class="brand">
+                <div class="logo-icon"><i class="fas fa-landmark"></i></div>
+                <h1>GAJAH MAS <span>· Financial Dashboard</span></h1>
+            </div>
+            <div class="periode">
+                <i class="fas fa-calendar-alt"></i>
+                <span id="headerPeriode">Juni 2026</span>
+            </div>
+        </header>
+
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="tabKas">
+                <i class="fas fa-chart-pie"></i> Laporan Kas
+            </button>
+            <button class="tab-btn" data-tab="tabRekap">
+                <i class="fas fa-file-invoice"></i> Rekap Uang Masuk
+            </button>
+            <button class="tab-btn" data-tab="tabPengeluaranBesar">
+                <i class="fas fa-arrow-up"></i> Pengeluaran Besar
+            </button>
+            <button class="tab-btn" data-tab="tabPengeluaranKecil">
+                <i class="fas fa-coins"></i> Pengeluaran Kecil
+            </button>
+            <button class="tab-btn" data-tab="tabPenjualan">
+                <i class="fas fa-store"></i> Penjualan
+            </button>
+        </nav>
+
+        <!-- TAB 1: KAS -->
+        <div id="tabKas" class="tab-content active">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+                <h2 style="font-size:17px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-university" style="color:#2563eb;"></i> LAPORAN KAS
+                    <span id="bulanTahun" style="font-size:13px;font-weight:400;color:#64748b;">(Juni 2026)</span>
+                </h2>
+            </div>
+            <div class="grid-2">
+                <div class="card-kas">
+                    <h3><i class="fas fa-arrow-right"></i> Saldo Awal</h3>
+                    <div class="row"><span>BCA CV Operasional</span><span class="angka" id="bcaOperasional">Rp 0</span></div>
+                    <div class="row"><span>BCA CV Escrow</span><span class="angka" id="bcaEscrow">Rp 0</span></div>
+                    <div class="row"><span>BCA Lama</span><span class="angka" id="bcaLama">Rp 0</span></div>
+                    <div class="row"><span>Brankas</span><span class="angka" id="brankas">Rp 0</span></div>
+                    <div class="row total"><span>TOTAL SALDO AWAL</span><span class="angka" id="totalSaldoAwal">Rp 0</span></div>
+                </div>
+                <div class="card-kas">
+                    <h3><i class="fas fa-flag-checkered"></i> Saldo Akhir</h3>
+                    <div class="row"><span>BCA CV Operasional</span><span class="angka" id="bcaOperasionalAkhir">Rp 0</span></div>
+                    <div class="row"><span>BCA CV Escrow</span><span class="angka" id="bcaEscrowAkhir">Rp 0</span></div>
+                    <div class="row"><span>BCA Lama</span><span class="angka" id="bcaLamaAkhir">Rp 0</span></div>
+                    <div class="row"><span>Brankas</span><span class="angka" id="brankasAkhir">Rp 0</span></div>
+                    <div class="row total"><span>TOTAL SALDO AKHIR</span><span class="angka" id="totalSaldoAkhir">Rp 0</span></div>
+                </div>
+            </div>
+            <div class="grid-3">
+                <div class="card-kas">
+                    <h3><i class="fas fa-arrow-down" style="color:#059669;"></i> Total Pemasukan</h3>
+                    <div class="row"><span>Penjualan Tunai</span><span class="angka" id="penjualanCash">Rp 0</span></div>
+                    <div class="row"><span>Pembayaran Piutang</span><span class="angka" id="pembayaranPiutang">Rp 0</span></div>
+                    <div class="row total"><span>TOTAL</span><span class="angka" id="totalPemasukan">Rp 0</span></div>
+                </div>
+                <div class="card-kas">
+                    <h3><i class="fas fa-arrow-up" style="color:#dc2626;"></i> Total Pengeluaran</h3>
+                    <div class="row"><span>Kas Besar</span><span class="angka" id="totalKasBesar">Rp 0</span></div>
+                    <div class="row"><span>Kas Kecil / Harian</span><span class="angka" id="totalKasKecil">Rp 0</span></div>
+                    <div class="row"><span style="color:#dc2626;">Hutang Dagang</span><span class="angka" id="totalHutangDagang" style="color:#dc2626;">Rp 0</span></div>
+                    <div class="row total"><span>TOTAL</span><span class="angka" id="totalPengeluaran">Rp 0</span></div>
+                </div>
+                <div class="card-kas saldo-final">
+                    <h3><i class="fas fa-calculator"></i> Saldo Final</h3>
+                    <div class="row"><span>TOTAL PEMASUKAN</span><span class="angka" id="finalPemasukan">Rp 0</span></div>
+                    <div class="row"><span>TOTAL PENGELUARAN</span><span class="angka" id="finalPengeluaran">Rp 0</span></div>
+                    <div class="row total-final"><span>TOTAL</span><span class="angka" id="saldoFinal">Rp 0</span></div>
+                    <div class="subtext">Rumus: Saldo Awal + Masuk − Keluar</div>
+                </div>
+            </div>
+            <div class="flex-wrap">
+                <input type="file" id="uploadSaldoAwal" accept=".xlsx,.xls" style="display:none" onchange="handleUploadSaldoAwal(event)">
+                <button class="btn btn-primary" onclick="document.getElementById('uploadSaldoAwal').click()">
+                    <i class="fas fa-upload"></i> Upload Saldo Awal
+                </button>
+                <input type="file" id="uploadSaldoAkhir" accept=".xlsx,.xls" style="display:none" onchange="handleUploadSaldoAkhir(event)">
+                <button class="btn btn-success" onclick="document.getElementById('uploadSaldoAkhir').click()">
+                    <i class="fas fa-upload"></i> Upload Saldo Akhir
+                </button>
+                <button class="btn btn-purple" onclick="syncPengeluaran()">
+                    <i class="fas fa-sync"></i> Sync Pengeluaran
+                </button>
+                <button class="btn btn-danger" onclick="inputHutangDagang()">
+                    <i class="fas fa-edit"></i> Input Hutang Dagang
+                </button>
+            </div>
+        </div>
+
+        <!-- TAB 2: REKAP -->
+        <div id="tabRekap" class="tab-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+                <div>
+                    <h2 style="font-size:17px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:8px;">
+                        <i class="fas fa-file-invoice" style="color:#2563eb;"></i> Rekap Uang Masuk
+                    </h2>
+                    <p style="font-size:12px;color:#64748b;margin-top:2px;">Upload Excel → rekap total per tanggal</p>
+                </div>
+                <div class="penjualan-upload-box" id="dropZoneRekap">
+                    <i class="fas fa-cloud-upload-alt" style="color:#2563eb;font-size:18px;"></i>
+                    <span style="font-size:13px;font-weight:500;color:#1e293b;">Upload File</span>
+                    <span style="font-size:12px;color:#94a3b8;">| drag &amp; drop atau</span>
+                    <button class="btn btn-primary btn-sm" onclick="document.getElementById('fileInputRekap').click()">
+                        <i class="fas fa-folder-open"></i> Pilih
+                    </button>
+                    <input type="file" id="fileInputRekap" accept=".xlsx,.xls">
+                </div>
+            </div>
+            <div id="statusRekap" class="status"></div>
+            <div id="summaryCardsRekap" class="summary" style="display:none;"></div>
+            <div id="tableContainerRekap" class="table-wrapper" style="display:none;"></div>
+        </div>
+
+        <!-- TAB 3: PENGELUARAN BESAR -->
+        <div id="tabPengeluaranBesar" class="tab-content">
+            <div style="margin-bottom:12px;">
+                <h3 style="font-size:16px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-arrow-up" style="color:#dc2626;"></i> Pengeluaran Kas Besar
+                </h3>
+                <p style="font-size:12px;color:#64748b;">Upload data pengeluaran besar dari Excel (format: Buku Besar)</p>
+            </div>
+            <div class="upload-section">
+                <label><i class="fas fa-file-excel"></i> Upload Excel</label>
+                <input type="file" id="uploadBesar" accept=".xlsx,.xls">
+                <button class="btn btn-success" onclick="uploadBesar()"><i class="fas fa-upload"></i> Upload</button>
+                <span style="font-size:11px;color:#94a3b8;">| Sheet "Buku Besar"</span>
+            </div>
+            <div id="besarStatus" class="status" style="margin-top:10px;"></div>
+            <div class="table-wrapper" style="margin-top:14px;">
+                <table>
+                    <thead>
+                        <tr><th>Tanggal</th><th>Keterangan</th><th class="text-right">Debet</th><th class="text-right">Credit</th><th class="text-right">Saldo</th><th style="width:140px;">Edit</th><th style="width:120px;">Hapus</th></tr>
+                    </thead>
+                    <tbody id="besarBody">
+                        <tr><td colspan="7" style="text-align:center;padding:24px;color:#94a3b8;">Upload file Excel untuk menampilkan data</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 4: PENGELUARAN KECIL -->
+        <div id="tabPengeluaranKecil" class="tab-content">
+            <div style="margin-bottom:12px;">
+                <h3 style="font-size:16px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-coins" style="color:#d97706;"></i> Pengeluaran Kas Kecil
+                </h3>
+                <p style="font-size:12px;color:#64748b;">Upload data kas kecil (format: Tanggal, Keterangan, Masuk, Pengeluaran Kantor, Pengeluaran Burung)</p>
+            </div>
+            <div class="upload-section">
+                <label><i class="fas fa-file-excel"></i> Upload Excel</label>
+                <input type="file" id="uploadKecil" accept=".xlsx,.xls">
+                <button class="btn btn-warning" onclick="uploadKecil()"><i class="fas fa-upload"></i> Upload</button>
+                <span style="font-size:11px;color:#94a3b8;">| Sheet pertama</span>
+            </div>
+            <div id="kecilStatus" class="status" style="margin-top:10px;"></div>
+            <div class="table-wrapper" style="margin-top:14px;">
+                <table>
+                    <thead>
+                        <tr><th>Tanggal</th><th>Keterangan</th><th class="text-right">Masuk</th><th class="text-right">Kantor</th><th class="text-right">Burung</th><th class="text-right">Total Keluar</th><th class="text-right">Saldo</th></tr>
+                    </thead>
+                    <tbody id="kecilBody">
+                        <tr><td colspan="7" style="text-align:center;padding:24px;color:#94a3b8;">Upload file Excel untuk menampilkan data</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 5: PENJUALAN -->
+        <div id="tabPenjualan" class="tab-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+                <div>
+                    <h2 style="font-size:17px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:8px;">
+                        <i class="fas fa-store" style="color:#2563eb;"></i> Dashboard Penjualan
+                    </h2>
+                    <p style="font-size:12px;color:#64748b;margin-top:2px;">
+                        <span id="penjualanFileInfo" class="file-info" style="background:transparent;padding:0;">Upload Excel → lihat ringkasan Cash, Tempo, per Sales, produk FITRI, dan Top 10 produk lainnya</span>
+                    </p>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <div class="penjualan-upload-box" id="penjualanUploadBox">
+                        <i class="fas fa-cloud-upload-alt" style="color:#2563eb;font-size:18px;"></i>
+                        <span style="font-size:13px;font-weight:500;color:#1e293b;">Upload Excel</span>
+                        <input type="file" id="penjualanFileInput" accept=".xlsx,.xls">
+                        <span style="font-size:11px;color:#94a3b8;">.xlsx / .xls</span>
+                    </div>
+                    <button class="btn-reset" id="penjualanResetData">✕ Hapus Data</button>
+                </div>
+            </div>
+            <div id="penjualanStatus" class="status"></div>
+            <div id="penjualanMetrics" class="penjualan-grid-metrics" style="display:none;"></div>
+            <div id="penjualanSalesSection" class="table-wrapper" style="display:none;margin-top:14px;"></div>
+            <div id="penjualanFitriSection" class="table-wrapper" style="display:none;margin-top:14px;"></div>
+            <div id="penjualanTopSection" class="table-wrapper" style="display:none;margin-top:14px;"></div>
+            <div id="penjualanEmptyState" class="empty-state" style="display:block;padding:40px 0;">
+                <i class="fas fa-file-excel" style="font-size:40px;color:#cbd5e1;display:block;margin-bottom:12px;"></i>
+                📂 Belum ada data. Upload file Excel untuk mulai melihat dashboard penjualan.
+                <div style="font-size:12px;color:#94a3b8;margin-top:8px;">
+                    File harus memiliki sheet dengan kolom: No.Faktur, Produk, qty, Harga_Beli, Total, Sales, Pembayaran
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <span><i class="fas fa-shield-alt"></i> Data diproses 100% di browser</span>
+            <span><i class="far fa-clock"></i> <span id="footerTime">—</span></span>
+        </div>
+
+    </div>
+
+    <script>
+        // ============================================================
+        // SUPABASE CONFIG - GANTI DENGAN ANON KEY ANDA!
+        // ============================================================
+        const SUPABASE_URL = 'https://wnsaciwlgjbwxyshlhcp.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_AHZinr9YePuthB2bAS8BDA_WcXr2Z7K';
+
+        // ============================================================
+        // INISIALISASI SUPABASE
+        // ============================================================
+        let supabaseClient = null;
+
+        function initSupabase() {
+            try {
+                if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    console.log('✅ Supabase client siap (via window.supabase)');
+                    return true;
+                }
+                if (typeof supabase !== 'undefined' && supabase.createClient) {
+                    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    console.log('✅ Supabase client siap (via supabase)');
+                    return true;
+                }
+                console.warn('⚠️ Supabase library belum load, mencoba lagi...');
+                return false;
+            } catch (e) {
+                console.warn('⚠️ Gagal inisialisasi Supabase:', e.message);
+                return false;
+            }
+        }
+
+        initSupabase();
+        setTimeout(() => { if (!supabaseClient) initSupabase(); }, 1000);
+        setTimeout(() => { if (!supabaseClient) initSupabase(); }, 3000);
+
+        // ============================================================
+        // FUNGSI FORMAT
+        // ============================================================
+        function formatRupiah(angka) {
+            if (angka === undefined || isNaN(angka)) return 'Rp 0';
+            return 'Rp ' + Math.round(angka).toLocaleString('id-ID');
+        }
+
+        function cleanNumber(val) {
+            if (val === undefined || val === null || val === '') return 0;
+            if (typeof val === 'number') return val;
+            if (typeof val === 'string') {
+                let cleaned = val.replace(/[Rp.\s]/g, '').replace(',', '.');
+                let num = parseFloat(cleaned);
+                return isNaN(num) ? 0 : num;
+            }
+            return 0;
+        }
+
+        // ============================================================
+        // TAB NAVIGASI - PERBAIKAN DENGAN EVENT DELEGATION
+        // ============================================================
+        function setActiveTab(tabId) {
+            try {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+                if (btn) {
+                    btn.classList.add('active');
+                } else {
+                    console.warn(`Tab "${tabId}" tidak ditemukan. Fallback ke tab pertama.`);
+                    const firstBtn = document.querySelector('.tab-btn');
+                    if (firstBtn) {
+                        const firstTab = firstBtn.dataset.tab;
+                        if (firstTab) return setActiveTab(firstTab);
+                    }
+                    return;
+                }
+
+                const target = document.getElementById(tabId);
+                if (target) {
+                    target.classList.add('active');
+                } else {
+                    console.warn(`Konten "${tabId}" tidak ditemukan.`);
+                }
+            } catch (e) {
+                console.error('Error setActiveTab:', e);
+            }
+        }
+
+        // Event delegation untuk semua tombol tab (aman walau DOM berubah)
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.tab-btn');
+            if (btn) {
+                e.preventDefault();
+                const tabId = btn.dataset.tab;
+                if (tabId) setActiveTab(tabId);
+            }
+        });
+
+        function initFirstTab() {
+            const activeBtn = document.querySelector('.tab-btn.active');
+            if (activeBtn && activeBtn.dataset.tab) {
+                setActiveTab(activeBtn.dataset.tab);
+                return;
+            }
+            const firstBtn = document.querySelector('.tab-btn');
+            if (firstBtn && firstBtn.dataset.tab) {
+                setActiveTab(firstBtn.dataset.tab);
+            }
+        }
+
+        // ============================================================
+        // FOOTER TIME
+        // ============================================================
+        document.getElementById('footerTime').textContent = new Date().toLocaleString('id-ID', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        // ============================================================
+        // KELUAR
+        // ============================================================
+        function keluarAplikasi() {
+            if (confirm("Yakin ingin keluar?")) {
+                window.close();
+                setTimeout(() => {
+                    if (!window.closed) window.location.href = 'about:blank';
+                }, 500);
+            }
+        }
+
+        // ============================================================
+        // PENJUALAN - SUPABASE + LOCALSTORAGE
+        // ============================================================
+        const PENJUALAN_STORAGE_KEY = 'gajahmas_penjualan_data_v2';
+
+        async function savePenjualanData(dataFilter) {
+            if (!supabaseClient) {
+                localStorage.setItem(PENJUALAN_STORAGE_KEY, JSON.stringify(dataFilter));
+                return false;
+            }
+            try {
+                await supabaseClient.from('penjualan').delete().neq('id', 0);
+                const dataToInsert = dataFilter.map(row => ({
+                    no_faktur: row['No.Faktur'] || '',
+                    produk: row.Produk || '',
+                    qty: row.qty || 0,
+                    harga_beli: row.Harga_Beli || 0,
+                    total: row.Total || 0,
+                    sales: row.Sales || '',
+                    pembayaran: row.Pembayaran || '',
+                    profit: row.Profit || 0,
+                    jenis: row.Jenis || 'Tempo',
+                    is_fitri: row.IsFitri || false
+                }));
+                const { error } = await supabaseClient.from('penjualan').insert(dataToInsert);
+                if (error) throw error;
+                localStorage.setItem(PENJUALAN_STORAGE_KEY, JSON.stringify(dataFilter));
+                document.getElementById('penjualanFileInfo').textContent = `📄 ${dataFilter.length} transaksi (online)`;
+                return true;
+            } catch (e) {
+                console.error('Gagal simpan ke Supabase:', e);
+                localStorage.setItem(PENJUALAN_STORAGE_KEY, JSON.stringify(dataFilter));
+                document.getElementById('penjualanFileInfo').textContent = `📄 ${dataFilter.length} transaksi (offline)`;
+                return false;
+            }
+        }
+
+        async function loadPenjualanData() {
+            if (supabaseClient) {
+                try {
+                    const { data, error } = await supabaseClient.from('penjualan').select('*').order('created_at', { ascending: false });
+                    if (!error && data && data.length > 0) {
+                        const result = data.map(row => ({
+                            'No.Faktur': row.no_faktur || '',
+                            'Produk': row.produk || '',
+                            'qty': row.qty || 0,
+                            'Harga_Beli': row.harga_beli || 0,
+                            'Total': row.total || 0,
+                            'Sales': row.sales || '',
+                            'Pembayaran': row.pembayaran || '',
+                            'Profit': row.profit || 0,
+                            'Jenis': row.jenis || 'Tempo',
+                            'IsFitri': row.is_fitri || false
+                        }));
+                        localStorage.setItem(PENJUALAN_STORAGE_KEY, JSON.stringify(result));
+                        document.getElementById('penjualanFileInfo').textContent = `📄 ${result.length} transaksi (online)`;
+                        return result;
+                    }
+                } catch (e) {
+                    console.warn('Gagal load dari Supabase:', e);
+                }
+            }
+            try {
+                const raw = localStorage.getItem(PENJUALAN_STORAGE_KEY);
+                if (raw) {
+                    document.getElementById('penjualanFileInfo').textContent = '📄 data dari cache (offline)';
+                    return JSON.parse(raw);
+                }
+            } catch (e) {}
+            return null;
+        }
+
+        async function clearPenjualanStorage() {
+            if (supabaseClient) {
+                try {
+                    await supabaseClient.from('penjualan').delete().neq('id', 0);
+                } catch (e) { console.warn('Gagal hapus dari Supabase:', e); }
+            }
+            localStorage.removeItem(PENJUALAN_STORAGE_KEY);
+            document.getElementById('penjualanFileInfo').textContent =
+                'Upload Excel → lihat ringkasan Cash, Tempo, per Sales, produk FITRI, dan Top 10 produk lainnya';
+        }
+
+        // ============================================================
+        // RENDER PENJUALAN DASHBOARD
+        // ============================================================
+        function renderPenjualanDashboard(dataFilter) {
+            const emptyState = document.getElementById('penjualanEmptyState');
+            const metricsDiv = document.getElementById('penjualanMetrics');
+            const salesDiv = document.getElementById('penjualanSalesSection');
+            const fitriDiv = document.getElementById('penjualanFitriSection');
+            const topDiv = document.getElementById('penjualanTopSection');
+            const statusDiv = document.getElementById('penjualanStatus');
+
+            if (!dataFilter || dataFilter.length === 0) {
+                emptyState.style.display = 'block';
+                metricsDiv.style.display = 'none';
+                salesDiv.style.display = 'none';
+                fitriDiv.style.display = 'none';
+                topDiv.style.display = 'none';
+                statusDiv.className = 'status';
+                statusDiv.style.display = 'none';
+                return;
+            }
+            emptyState.style.display = 'none';
+
+            const totalPenjualan = dataFilter.reduce((s, r) => s + r.Total, 0);
+            const totalProfit = dataFilter.reduce((s, r) => s + r.Profit, 0);
+            const cash = dataFilter.filter(r => r.Jenis === 'Cash');
+            const tempo = dataFilter.filter(r => r.Jenis === 'Tempo');
+            const totalCash = cash.reduce((s, r) => s + r.Total, 0);
+            const profitCash = cash.reduce((s, r) => s + r.Profit, 0);
+            const totalTempo = tempo.reduce((s, r) => s + r.Total, 0);
+            const profitTempo = tempo.reduce((s, r) => s + r.Profit, 0);
+
+            const salesMap = new Map();
+            dataFilter.forEach(r => {
+                const key = r.Sales;
+                if (!salesMap.has(key)) {
+                    salesMap.set(key, { Sales: key, Total_Cash: 0, Profit_Cash: 0, Total_Tempo: 0, Profit_Tempo: 0,
+                        Total: 0, Profit: 0 });
+                }
+                const entry = salesMap.get(key);
+                if (r.Jenis === 'Cash') {
+                    entry.Total_Cash += r.Total;
+                    entry.Profit_Cash += r.Profit;
+                } else {
+                    entry.Total_Tempo += r.Total;
+                    entry.Profit_Tempo += r.Profit;
+                }
+                entry.Total += r.Total;
+                entry.Profit += r.Profit;
+            });
+            const salesArray = Array.from(salesMap.values()).sort((a, b) => b.Profit - a.Profit);
+
+            const fitriData = dataFilter.filter(r => r.IsFitri);
+            const fitriCash = fitriData.filter(r => r.Jenis === 'Cash');
+            const fitriTempo = fitriData.filter(r => r.Jenis === 'Tempo');
+            const totalFitri = fitriData.reduce((s, r) => s + r.Total, 0);
+            const profitFitri = fitriData.reduce((s, r) => s + r.Profit, 0);
+            const fitriSalesMap = new Map();
+            fitriData.forEach(r => {
+                const key = r.Sales;
+                if (!fitriSalesMap.has(key)) {
+                    fitriSalesMap.set(key, { Sales: key, Total_Cash: 0, Profit_Cash: 0, Total_Tempo: 0,
+                        Profit_Tempo: 0, Total: 0, Profit: 0 });
+                }
+                const entry = fitriSalesMap.get(key);
+                if (r.Jenis === 'Cash') {
+                    entry.Total_Cash += r.Total;
+                    entry.Profit_Cash += r.Profit;
+                } else {
+                    entry.Total_Tempo += r.Total;
+                    entry.Profit_Tempo += r.Profit;
+                }
+                entry.Total += r.Total;
+                entry.Profit += r.Profit;
+            });
+            const fitriSalesArray = Array.from(fitriSalesMap.values()).sort((a, b) => b.Profit - a.Profit);
+
+            const lainData = dataFilter.filter(r => !r.IsFitri);
+            const totalLain = lainData.reduce((s, r) => s + r.Total, 0);
+            const profitLain = lainData.reduce((s, r) => s + r.Profit, 0);
+            const produkMap = new Map();
+            lainData.forEach(r => {
+                const key = r.Produk;
+                if (!produkMap.has(key)) {
+                    produkMap.set(key, { Produk: key, Total_Cash: 0, Profit_Cash: 0, Total_Tempo: 0, Profit_Tempo: 0,
+                        Total: 0, Profit: 0 });
+                }
+                const entry = produkMap.get(key);
+                if (r.Jenis === 'Cash') {
+                    entry.Total_Cash += r.Total;
+                    entry.Profit_Cash += r.Profit;
+                } else {
+                    entry.Total_Tempo += r.Total;
+                    entry.Profit_Tempo += r.Profit;
+                }
+                entry.Total += r.Total;
+                entry.Profit += r.Profit;
+            });
+            const produkArray = Array.from(produkMap.values()).sort((a, b) => b.Total - a.Total).slice(0, 10);
+
+            metricsDiv.style.display = 'grid';
+            metricsDiv.innerHTML = `
+                <div class="penjualan-metric-card"><div class="label">💲 Total Penjualan</div><div class="value">${formatRupiah(totalPenjualan)}</div></div>
+                <div class="penjualan-metric-card"><div class="label">📈 Total Profit</div><div class="value">${formatRupiah(totalProfit)}</div></div>
+                <div class="penjualan-metric-card"><div class="label">🟢 Cash</div><div class="value">${formatRupiah(totalCash)}</div><div class="sub">Profit: ${formatRupiah(profitCash)}</div></div>
+                <div class="penjualan-metric-card"><div class="label">🔵 Tempo</div><div class="value">${formatRupiah(totalTempo)}</div><div class="sub">Profit: ${formatRupiah(profitTempo)}</div></div>
+            `;
+
+            salesDiv.style.display = 'block';
+            let salesHtml =
+                `<table><thead><tr><th>Sales</th><th class="text-right">Total</th><th class="text-right">Profit</th><th class="text-right">Cash (Penj.)</th><th class="text-right">Cash (Profit)</th><th class="text-right">Tempo (Penj.)</th><th class="text-right">Tempo (Profit)</th></tr></thead><tbody>`;
+            salesArray.forEach(s => {
+                salesHtml += `
+                    <tr><td class="text-left"><strong>${s.Sales}</strong></td>
+                    <td class="text-right">${formatRupiah(s.Total)}</td>
+                    <td class="text-right">${formatRupiah(s.Profit)}</td>
+                    <td class="text-right">${formatRupiah(s.Total_Cash)}</td>
+                    <td class="text-right">${formatRupiah(s.Profit_Cash)}</td>
+                    <td class="text-right">${formatRupiah(s.Total_Tempo)}</td>
+                    <td class="text-right">${formatRupiah(s.Profit_Tempo)}</td>
+                </tr>`;
+            });
+            salesHtml += `</tbody></table>`;
+            salesDiv.innerHTML =
+                `<div style="padding:14px 16px;font-weight:600;font-size:13px;border-bottom:1px solid #eef2f6;">👤 Rincian per Sales</div>` +
+                salesHtml;
+
+            fitriDiv.style.display = 'block';
+            let fitriHtml = `
+                <div style="padding:14px 16px;border-bottom:1px solid #eef2f6;">
+                    <div style="font-weight:600;font-size:13px;">🛢️ Produk Andalan: FITRI</div>
+                    <div class="flex-stats" style="margin-top:6px;">
+                        <div><strong>Total</strong> ${formatRupiah(totalFitri)}</div>
+                        <div><strong>Profit</strong> ${formatRupiah(profitFitri)}</div>
+                        <div><span class="badge badge-cash">Cash</span> ${formatRupiah(fitriCash.reduce((s,r)=>s+r.Total,0))} (Profit: ${formatRupiah(fitriCash.reduce((s,r)=>s+r.Profit,0))})</div>
+                        <div><span class="badge badge-tempo">Tempo</span> ${formatRupiah(fitriTempo.reduce((s,r)=>s+r.Total,0))} (Profit: ${formatRupiah(fitriTempo.reduce((s,r)=>s+r.Profit,0))})</div>
+                    </div>
+                </div>
+                <table><thead><tr><th>Sales</th><th class="text-right">Total</th><th class="text-right">Profit</th><th class="text-right">Cash (Penj.)</th><th class="text-right">Cash (Profit)</th><th class="text-right">Tempo (Penj.)</th><th class="text-right">Tempo (Profit)</th></tr></thead><tbody>`;
+            if (fitriSalesArray.length === 0) {
+                fitriHtml += `<tr><td colspan="7" style="text-align:center;padding:16px;color:#94a3b8;">Tidak ada transaksi FITRI</td></tr>`;
+            } else {
+                fitriSalesArray.forEach(s => {
+                    fitriHtml += `
+                        <tr><td class="text-left"><strong>${s.Sales}</strong></td>
+                        <td class="text-right">${formatRupiah(s.Total)}</td>
+                        <td class="text-right">${formatRupiah(s.Profit)}</td>
+                        <td class="text-right">${formatRupiah(s.Total_Cash)}</td>
+                        <td class="text-right">${formatRupiah(s.Profit_Cash)}</td>
+                        <td class="text-right">${formatRupiah(s.Total_Tempo)}</td>
+                        <td class="text-right">${formatRupiah(s.Profit_Tempo)}</td>
+                    </tr>`;
+                });
+            }
+            fitriHtml += `</tbody></table>`;
+            fitriDiv.innerHTML = fitriHtml;
+
+            topDiv.style.display = 'block';
+            let topHtml = `
+                <div style="padding:14px 16px;border-bottom:1px solid #eef2f6;">
+                    <div style="font-weight:600;font-size:13px;">📦 Top 10 Produk Lainnya</div>
+                    <div class="flex-stats" style="margin-top:6px;">
+                        <div><strong>Total</strong> ${formatRupiah(totalLain)}</div>
+                        <div><strong>Profit</strong> ${formatRupiah(profitLain)}</div>
+                    </div>
+                </div>
+                <table><thead><tr><th>Produk</th><th class="text-right">Total</th><th class="text-right">Profit</th><th class="text-right">Cash (Penj.)</th><th class="text-right">Cash (Profit)</th><th class="text-right">Tempo (Penj.)</th><th class="text-right">Tempo (Profit)</th></tr></thead><tbody>`;
+            produkArray.forEach(p => {
+                topHtml += `
+                    <tr><td class="text-left"><strong>${p.Produk}</strong></td>
+                    <td class="text-right">${formatRupiah(p.Total)}</td>
+                    <td class="text-right">${formatRupiah(p.Profit)}</td>
+                    <td class="text-right">${formatRupiah(p.Total_Cash)}</td>
+                    <td class="text-right">${formatRupiah(p.Profit_Cash)}</td>
+                    <td class="text-right">${formatRupiah(p.Total_Tempo)}</td>
+                    <td class="text-right">${formatRupiah(p.Profit_Tempo)}</td>
+                </tr>`;
+            });
+            topHtml += `</tbody></table><div class="footnote" style="padding:8px 16px;">* Berdasarkan total penjualan terbesar. Hanya 10 produk tertinggi.</div>`;
+            topDiv.innerHTML = topHtml;
+
+            statusDiv.className = 'status success';
+            statusDiv.textContent = `✅ ${dataFilter.length} transaksi berhasil dimuat!`;
+            statusDiv.style.display = 'block';
+            document.getElementById('penjualanFileInfo').textContent = `📄 ${dataFilter.length} transaksi tersimpan`;
+        }
+
+        // ============================================================
+        // PROSES EXCEL PENJUALAN
+        // ============================================================
+        function processPenjualanExcel(json, fileName) {
+            const df = json.map(row => {
+                const produk = row['Produk'] || '';
+                const qty = parseFloat(row['qty']) || 0;
+                const harga_beli = parseFloat(row['Harga_Beli']) || 0;
+                const total = parseFloat(row['Total']) || 0;
+                const sales = row['Sales'] || '';
+                const pembayaran = String(row['Pembayaran'] || '').trim();
+                const profit = total - (qty * harga_beli);
+                return {
+                    ...row,
+                    Produk: produk,
+                    qty: qty,
+                    Harga_Beli: harga_beli,
+                    Total: total,
+                    Sales: sales,
+                    Pembayaran: pembayaran,
+                    Profit: profit,
+                    Jenis: pembayaran.toLowerCase() === 'cash' ? 'Cash' : 'Tempo',
+                    IsFitri: produk.toUpperCase().includes('FITRI')
+                };
+            });
+            const dataFilter = df.filter(r => r.Total !== 0 || r.qty !== 0);
+            if (dataFilter.length === 0) {
+                const statusDiv = document.getElementById('penjualanStatus');
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '⚠️ Tidak ada transaksi valid.';
+                statusDiv.style.display = 'block';
+                return null;
+            }
+            localStorage.setItem(PENJUALAN_STORAGE_KEY, JSON.stringify(dataFilter));
+            document.getElementById('penjualanFileInfo').textContent = `📄 ${fileName || 'data'} (${dataFilter.length} transaksi)`;
+            return dataFilter;
+        }
+
+        // ============================================================
+        // PENJUALAN EVENT HANDLERS
+        // ============================================================
+        document.getElementById('penjualanFileInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const statusDiv = document.getElementById('penjualanStatus');
+            statusDiv.className = 'status loading';
+            statusDiv.textContent = '⏳ Membaca file...';
+            statusDiv.style.display = 'block';
+
+            const reader = new FileReader();
+            reader.onload = async function(loadEvent) {
+                try {
+                    const data = new Uint8Array(loadEvent.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    let sheetName = 'Data Penjualan';
+                    let sheet = workbook.Sheets[sheetName];
+                    if (!sheet) {
+                        const first = workbook.SheetNames[0];
+                        sheet = workbook.Sheets[first];
+                        sheetName = first;
+                    }
+                    const json = XLSX.utils.sheet_to_json(sheet);
+                    if (!json || json.length === 0) {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = `⚠️ Tidak ada data di sheet "${sheetName}".`;
+                        statusDiv.style.display = 'block';
+                        return;
+                    }
+                    const dataFilter = processPenjualanExcel(json, file.name);
+                    if (dataFilter) {
+                        const saved = await savePenjualanData(dataFilter);
+                        statusDiv.className = saved ? 'status success' : 'status info';
+                        statusDiv.textContent = saved ?
+                            `✅ ${dataFilter.length} transaksi berhasil disimpan online!` :
+                            `⚠️ Data disimpan offline (cache) karena gagal koneksi.`;
+                        statusDiv.style.display = 'block';
+                        renderPenjualanDashboard(dataFilter);
+                    }
+                } catch (err) {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ Gagal membaca file: ${err.message}`;
+                    statusDiv.style.display = 'block';
+                    console.error(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            e.target.value = '';
+        });
+
+        document.getElementById('penjualanResetData').addEventListener('click', async function() {
+            if (!confirm('Yakin ingin menghapus semua data penjualan?')) return;
+            await clearPenjualanStorage();
+            renderPenjualanDashboard(null);
+            document.getElementById('penjualanStatus').className = 'status';
+            document.getElementById('penjualanStatus').style.display = 'none';
+        });
+
+        document.getElementById('penjualanUploadBox').addEventListener('click', function(e) {
+            if (e.target.tagName !== 'INPUT') {
+                document.getElementById('penjualanFileInput').click();
+            }
+        });
+
+        // ============================================================
+        // LOAD DATA PENJUALAN AWAL
+        // ============================================================
+        (async function initPenjualan() {
+            const savedData = await loadPenjualanData();
+            if (savedData && savedData.length > 0) {
+                document.getElementById('penjualanFileInfo').textContent =
+                    `📄 data tersimpan (${savedData.length} transaksi)`;
+                renderPenjualanDashboard(savedData);
+            }
+        })();
+
+        // ============================================================
+        // REKAP UANG MASUK
+        // ============================================================
+        const KEYWORD_PIUTANG = "uang masuk dari piutang";
+        const KEYWORD_PENJUALAN_CASH = "uang masuk penjualan cash";
+
+        // ============================================================
+        // SUPABASE SYNC - REKAP/PENGELUARAN/SALDO (multi-device)
+        // ============================================================
+        function getPeriodeLabel() {
+            const bulan = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+            return bulan;
+        }
+
+        async function syncDeleteAndInsert(table, periodeLabel, rows, mapRowFn) {
+            if (!supabaseClient) return { ok: false, offline: true };
+            try {
+                await supabaseClient.from(table).delete().eq('periode_label', periodeLabel);
+                const dataToInsert = rows.map(r => mapRowFn(r));
+                const { error } = await supabaseClient.from(table).insert(dataToInsert);
+                if (error) throw error;
+                return { ok: true };
+            } catch (e) {
+                console.error('Supabase sync gagal untuk', table, e);
+                return { ok: false, offline: true };
+            }
+        }
+
+        async function loadTableByPeriode(table, periodeLabel) {
+            if (!supabaseClient) return null;
+            try {
+                const { data, error } = await supabaseClient
+                    .from(table)
+                    .select('*')
+                    .eq('periode_label', periodeLabel);
+                if (error) throw error;
+                return data || [];
+            } catch (e) {
+                console.error('Gagal load dari Supabase tabel', table, e);
+                return null;
+            }
+        }
+
+        async function saveRekapUangMasukToSupabase(results, periodeLabel) {
+            return syncDeleteAndInsert(
+                'rekap_uang_masuk',
+                periodeLabel,
+                results || [],
+                (r) => ({
+                    periode_label: periodeLabel,
+                    tanggal_label: r.dateLabel,
+                    piutang_cash: r.piutangCash,
+                    piutang_transfer: r.piutangTransfer,
+                    penjualan_cash: r.penjualanCash,
+                    penjualan_transfer: r.penjualanTransfer,
+                    total_cash: r.totalCash,
+                    total_transfer: r.totalTransfer,
+                    grand_total: r.grandTotal
+                })
+            );
+        }
+
+        async function loadRekapUangMasukFromSupabase(periodeLabel) {
+            const data = await loadTableByPeriode('rekap_uang_masuk', periodeLabel);
+            if (!data || data.length === 0) return null;
+            return data
+                .map(r => ({
+                    dateLabel: r.tanggal_label,
+                    piutangCash: Number(r.piutang_cash) || 0,
+                    piutangTransfer: Number(r.piutang_transfer) || 0,
+                    penjualanCash: Number(r.penjualan_cash) || 0,
+                    penjualanTransfer: Number(r.penjualan_transfer) || 0,
+                    totalCash: Number(r.total_cash) || 0,
+                    totalTransfer: Number(r.total_transfer) || 0,
+                    grandTotal: Number(r.grand_total) || 0
+                }))
+                .sort((a, b) => String(a.dateLabel).localeCompare(String(b.dateLabel)));
+        }
+
+        async function savePengeluaranBesarToSupabase(rows, periodeLabel) {
+            return syncDeleteAndInsert(
+                'pengeluaran_besar',
+                periodeLabel,
+                rows || [],
+                (r) => ({
+                    periode_label: periodeLabel,
+                    tanggal: r.tanggal,
+                    keterangan: r.keterangan,
+                    debet: Number(r.debet) || 0,
+                    credit: Number(r.credit) || 0,
+                    saldo: Number(r.saldo) || 0
+                })
+            );
+        }
+
+        async function loadPengeluaranBesarFromSupabase(periodeLabel) {
+            const data = await loadTableByPeriode('pengeluaran_besar', periodeLabel);
+            if (!data || data.length === 0) return null;
+            return data.map(r => ({
+                tanggal: r.tanggal,
+                keterangan: r.keterangan,
+                debet: Number(r.debet) || 0,
+                credit: Number(r.credit) || 0,
+                saldo: Number(r.saldo) || 0
+            }));
+        }
+
+        async function savePengeluaranKecilToSupabase(rows, periodeLabel) {
+            return syncDeleteAndInsert(
+                'pengeluaran_kecil',
+                periodeLabel,
+                rows || [],
+                (r) => ({
+                    periode_label: periodeLabel,
+                    tanggal: r.tanggal,
+                    keterangan: r.ket,
+                    masuk: Number(r.masuk) || 0,
+                    kantor: Number(r.kantor) || 0,
+                    burung: Number(r.burung) || 0
+                })
+            );
+        }
+
+        async function loadPengeluaranKecilFromSupabase(periodeLabel) {
+            const data = await loadTableByPeriode('pengeluaran_kecil', periodeLabel);
+            if (!data || data.length === 0) return null;
+            return data.map(r => ({
+                tanggal: r.tanggal,
+                ket: r.keterangan,
+                masuk: Number(r.masuk) || 0,
+                kantor: Number(r.kantor) || 0,
+                burung: Number(r.burung) || 0
+            }));
+        }
+
+        async function saveSaldoToSupabase({ saldoAwal, saldoAkhir, bcaOperasionalAwal, bcaEscrowAwal, bcaLamaAwal, brankasAwal, bcaOperasionalAkhir, bcaEscrowAkhir, bcaLamaAkhir, brankasAkhir }, periodeLabel) {
+            if (!supabaseClient) return { ok: false, offline: true };
+            try {
+                await supabaseClient.from('saldo').delete().eq('periode_label', periodeLabel);
+                const { error } = await supabaseClient.from('saldo').insert({
+                    periode_label: periodeLabel,
+                    saldo_awal: Number(saldoAwal) || 0,
+                    saldo_akhir: Number(saldoAkhir) || 0,
+                    bca_operasional_awal: Number(bcaOperasionalAwal) || 0,
+                    bca_escrow_awal: Number(bcaEscrowAwal) || 0,
+                    bca_lama_awal: Number(bcaLamaAwal) || 0,
+                    brankas_awal: Number(brankasAwal) || 0,
+                    bca_operasional_akhir: Number(bcaOperasionalAkhir) || 0,
+                    bca_escrow_akhir: Number(bcaEscrowAkhir) || 0,
+                    bca_lama_akhir: Number(bcaLamaAkhir) || 0,
+                    brankas_akhir: Number(brankasAkhir) || 0
+                });
+                if (error) throw error;
+                return { ok: true };
+            } catch (e) {
+                console.error('Gagal save saldo ke Supabase', e);
+                return { ok: false, offline: true };
+            }
+        }
+
+        async function loadSaldoFromSupabase(periodeLabel) {
+            const data = await loadTableByPeriode('saldo', periodeLabel);
+            if (!data || data.length === 0) return null;
+            const r = data[0];
+            return {
+                saldoAwal: Number(r.saldo_awal) || 0,
+                saldoAkhir: Number(r.saldo_akhir) || 0,
+                bcaOperasionalAwal: Number(r.bca_operasional_awal) || 0,
+                bcaEscrowAwal: Number(r.bca_escrow_awal) || 0,
+                bcaLamaAwal: Number(r.bca_lama_awal) || 0,
+                brankasAwal: Number(r.brankas_awal) || 0,
+                bcaOperasionalAkhir: Number(r.bca_operasional_akhir) || 0,
+                bcaEscrowAkhir: Number(r.bca_escrow_akhir) || 0,
+                bcaLamaAkhir: Number(r.bca_lama_akhir) || 0,
+                brankasAkhir: Number(r.brankas_akhir) || 0
+            };
+        }
+
+        // ============================================================
+        // FUNGSI REKAP UANG MASUK
+        // ============================================================
+        function findRow(data, keyword) {
+            for (let i = 0; i < data.length; i++) {
+                let row = data[i];
+                for (let j = 0; j < row.length; j++) {
+                    let cell = row[j];
+                    if (typeof cell === 'string' && cell.toLowerCase().includes(keyword)) return i;
+                }
+            }
+            return -1;
+        }
+
+        function getCell(row, colIndex) {
+            if (!row || row.length <= colIndex) return 0;
+            return cleanNumber(row[colIndex]);
+        }
+
+        function findDate(data) {
+            for (let i = 0; i < Math.min(6, data.length); i++) {
+                let row = data[i];
+                for (let j = 0; j < row.length; j++) {
+                    let cell = row[j];
+                    if (typeof cell === 'string') {
+                        let match = cell.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+                        if (match) {
+                            return {
+                                day: parseInt(match[1]),
+                                month: parseInt(match[2]),
+                                year: parseInt(match[3]),
+                                label: `${String(match[1]).padStart(2,'0')}-${String(match[2]).padStart(2,'0')}`
+                            };
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        function processFileRekap(data) {
+            const workbook = XLSX.read(data, { type: 'array' });
+            const results = [];
+            for (let sheetName of workbook.SheetNames) {
+                if (sheetName === "Sheet2" || sheetName === "Template") continue;
+                const worksheet = workbook.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: 0 });
+                const dateInfo = findDate(rows);
+                if (!dateInfo) continue;
+                const rowPiutang = findRow(rows, KEYWORD_PIUTANG);
+                let piutangCash = 0,
+                    piutangTransfer = 0;
+                if (rowPiutang !== -1) {
+                    const r = rows[rowPiutang];
+                    piutangCash = getCell(r, 9) + getCell(r, 11);
+                    piutangTransfer = getCell(r, 10) + getCell(r, 12);
+                }
+                const rowPenjualan = findRow(rows, KEYWORD_PENJUALAN_CASH);
+                let penjualanCash = 0,
+                    penjualanTransfer = 0;
+                if (rowPenjualan !== -1) {
+                    const r = rows[rowPenjualan];
+                    penjualanCash = getCell(r, 9) + getCell(r, 11);
+                    penjualanTransfer = getCell(r, 10) + getCell(r, 12);
+                }
+                const totalCash = piutangCash + penjualanCash;
+                const totalTransfer = piutangTransfer + penjualanTransfer;
+                results.push({
+                    dateLabel: dateInfo.label,
+                    dateObj: new Date(dateInfo.year, dateInfo.month - 1, dateInfo.day),
+                    piutangCash,
+                    piutangTransfer,
+                    penjualanCash,
+                    penjualanTransfer,
+                    totalCash,
+                    totalTransfer,
+                    grandTotal: totalCash + totalTransfer
+                });
+            }
+            results.sort((a, b) => a.dateObj - b.dateObj);
+            return results;
+        }
+
+        const REKAP_UANG_MASUK_STORAGE_KEY = 'gajahmas_rekap_uang_masuk_v1';
+
+        function persistRekapData(results) {
+            try {
+                localStorage.setItem(REKAP_UANG_MASUK_STORAGE_KEY, JSON.stringify({
+                    results: results || [],
+                    savedAt: new Date().toISOString()
+                }));
+                const periodeLabel = document.getElementById('headerPeriode').textContent;
+                saveRekapUangMasukToSupabase(results, periodeLabel);
+            } catch (e) {
+                console.warn('Gagal simpan rekap ke localStorage:', e);
+            }
+        }
+
+        function loadPersistedRekap() {
+            try {
+                const raw = localStorage.getItem(REKAP_UANG_MASUK_STORAGE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (parsed && Array.isArray(parsed.results)) return parsed.results;
+            } catch (e) {
+                console.warn('Gagal load rekap dari localStorage:', e);
+            }
+            return null;
+        }
+
+        function renderRekap(data) {
+            const statusDiv = document.getElementById('statusRekap');
+            const summaryDiv = document.getElementById('summaryCardsRekap');
+            const tableDiv = document.getElementById('tableContainerRekap');
+
+            if (!data || data.length === 0) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '⚠️ Tidak ada data ditemukan.';
+                statusDiv.style.display = 'block';
+                summaryDiv.style.display = 'none';
+                tableDiv.style.display = 'none';
+                return;
+            }
+            statusDiv.className = 'status success';
+            statusDiv.textContent = `✅ Berhasil memproses ${data.length} hari!`;
+            statusDiv.style.display = 'block';
+
+            let totalPiutangCash = 0,
+                totalPiutangTransfer = 0,
+                totalPenjualanCash = 0,
+                totalPenjualanTransfer = 0;
+            let totalCashAll = 0,
+                totalTransferAll = 0,
+                grandAll = 0;
+            data.forEach(d => {
+                totalPiutangCash += d.piutangCash;
+                totalPiutangTransfer += d.piutangTransfer;
+                totalPenjualanCash += d.penjualanCash;
+                totalPenjualanTransfer += d.penjualanTransfer;
+                totalCashAll += d.totalCash;
+                totalTransferAll += d.totalTransfer;
+                grandAll += d.grandTotal;
+            });
+
+            window.rekapData = {
+                penjualanTunai: totalPenjualanCash + totalPenjualanTransfer,
+                pembayaranPiutang: totalPiutangCash + totalPiutangTransfer,
+                totalPemasukan: (totalPenjualanCash + totalPenjualanTransfer) + (totalPiutangCash + totalPiutangTransfer)
+            };
+            updateLaporanKas();
+
+            summaryDiv.style.display = 'grid';
+            summaryDiv.innerHTML = `
+                <div class="card"><div class="label">Total CASH</div><div class="value">${formatRupiah(totalCashAll)}</div></div>
+                <div class="card orange"><div class="label">Total TRANSFER</div><div class="value">${formatRupiah(totalTransferAll)}</div></div>
+                <div class="card teal"><div class="label">GRAND TOTAL</div><div class="value">${formatRupiah(grandAll)}</div></div>
+            `;
+
+            let html =
+                `<table><thead><tr><th>Tanggal</th><th>Piutang Cash</th><th>Piutang Transfer</th><th>Penjualan Cash</th><th>Penjualan Transfer</th><th>TOTAL CASH</th><th>TOTAL TRANSFER</th><th>GRAND TOTAL</th></tr></thead><tbody>`;
+            data.forEach(d => {
+                html += `
+                    <tr><td class="text-left">${d.dateLabel}</td>
+                    <td>${formatRupiah(d.piutangCash)}</td>
+                    <td>${formatRupiah(d.piutangTransfer)}</td>
+                    <td>${formatRupiah(d.penjualanCash)}</td>
+                    <td>${formatRupiah(d.penjualanTransfer)}</td>
+                    <td><strong>${formatRupiah(d.totalCash)}</strong></td>
+                    <td><strong>${formatRupiah(d.totalTransfer)}</strong></td>
+                    <td><strong>${formatRupiah(d.grandTotal)}</strong></td>
+                </tr>`;
+            });
+            html += `
+                <tr class="total-row"><td class="text-left">⭐ TOTAL</td>
+                <td>${formatRupiah(totalPiutangCash)}</td>
+                <td>${formatRupiah(totalPiutangTransfer)}</td>
+                <td>${formatRupiah(totalPenjualanCash)}</td>
+                <td>${formatRupiah(totalPenjualanTransfer)}</td>
+                <td>${formatRupiah(totalCashAll)}</td>
+                <td>${formatRupiah(totalTransferAll)}</td>
+                <td>${formatRupiah(grandAll)}</td>
+            </tr></tbody></table>`;
+            tableDiv.innerHTML = html;
+            tableDiv.style.display = 'block';
+
+            persistRekapData(data);
+        }
+
+        function handleFileRekap(file) {
+            const statusDiv = document.getElementById('statusRekap');
+            statusDiv.className = 'status loading';
+            statusDiv.textContent = '⏳ Memproses file...';
+            statusDiv.style.display = 'block';
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const results = processFileRekap(data);
+                    renderRekap(results);
+                } catch (err) {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ Error: ${err.message}`;
+                    statusDiv.style.display = 'block';
+                    document.getElementById('summaryCardsRekap').style.display = 'none';
+                    document.getElementById('tableContainerRekap').style.display = 'none';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        document.getElementById('fileInputRekap').addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                handleFileRekap(this.files[0]);
+            }
+            this.value = '';
+        });
+
+        const dropZoneRekap = document.getElementById('dropZoneRekap');
+        dropZoneRekap.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#2563eb';
+            this.style.background = '#eff6ff';
+        });
+        dropZoneRekap.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#cbd5e1';
+            this.style.background = '#f8fafc';
+        });
+        dropZoneRekap.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#cbd5e1';
+            this.style.background = '#f8fafc';
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                handleFileRekap(e.dataTransfer.files[0]);
+            }
+        });
+
+        // ============================================================
+        // LAPORAN KAS
+        // ============================================================
+        function updateLaporanKas() {
+            const bulan = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+            document.getElementById('bulanTahun').textContent = '(' + bulan + ')';
+
+            const penjualanTunai = window.rekapData ? window.rekapData.penjualanTunai : 0;
+            const pembayaranPiutang = window.rekapData ? window.rekapData.pembayaranPiutang : 0;
+            const totalPemasukan = penjualanTunai + pembayaranPiutang;
+
+            const saldoAwal = Number(localStorage.getItem('saldoAwal')) || 0;
+            let kasBesarFinal = Number(localStorage.getItem('totalKasBesar')) || 0;
+            let kasKecilFinal = Number(localStorage.getItem('totalKasKecil')) || 0;
+            const totalHutangDagang = Number(localStorage.getItem('totalHutangDagang')) || 0;
+
+            if (kasBesarFinal === 0) {
+                const rawBesar = localStorage.getItem('gajahmas_pengeluaranBesar');
+                if (rawBesar) {
+                    try {
+                        const rows = JSON.parse(rawBesar);
+                        if (Array.isArray(rows) && rows.length > 0) {
+                            kasBesarFinal = rows.reduce((sum, r) => sum + (Number(r?.credit) || 0), 0);
+                            localStorage.setItem('totalKasBesar', kasBesarFinal);
+                        }
+                    } catch (e) {}
+                }
+            }
+            if (kasKecilFinal === 0) {
+                const rawKecil = localStorage.getItem('pengeluaranKecilRows');
+                if (rawKecil) {
+                    try {
+                        const rows = JSON.parse(rawKecil);
+                        if (Array.isArray(rows) && rows.length > 0) {
+                            kasKecilFinal = rows.reduce((sum, r) => sum + (Number(r?.kantor) || 0) + (Number(r?.burung) ||
+                                0), 0);
+                            localStorage.setItem('totalKasKecil', kasKecilFinal);
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            const totalKeluar = kasBesarFinal + kasKecilFinal + totalHutangDagang;
+            const saldoFinal = saldoAwal + totalPemasukan - totalKeluar;
+
+            document.getElementById('penjualanCash').textContent = formatRupiah(penjualanTunai);
+            document.getElementById('pembayaranPiutang').textContent = formatRupiah(pembayaranPiutang);
+            document.getElementById('totalPemasukan').textContent = formatRupiah(totalPemasukan);
+            document.getElementById('totalKasBesar').textContent = formatRupiah(kasBesarFinal);
+            document.getElementById('totalKasKecil').textContent = formatRupiah(kasKecilFinal);
+            document.getElementById('totalHutangDagang').textContent = formatRupiah(totalHutangDagang);
+            document.getElementById('totalPengeluaran').textContent = formatRupiah(totalKeluar);
+            document.getElementById('finalPemasukan').textContent = formatRupiah(totalPemasukan);
+            document.getElementById('finalPengeluaran').textContent = formatRupiah(totalKeluar);
+            document.getElementById('saldoFinal').textContent = formatRupiah(saldoFinal);
+        }
+
+        function showNotif(msg, type = 'info') {
+            const el = document.getElementById('statusRekap');
+            if (!el) return;
+            el.textContent = msg;
+            el.className = 'status ' + type;
+            el.style.display = 'block';
+            setTimeout(() => el.className = 'status', 5000);
+        }
+
+        function syncPengeluaran() {
+            updateLaporanKas();
+            showNotif('✅ Data pengeluaran disinkronkan!', 'success');
+        }
+
+        function inputHutangDagang() {
+            const current = Number(localStorage.getItem('totalHutangDagang')) || 0;
+            const input = prompt('Masukkan total Pembayaran Hutang Dagang:', formatRupiah(current).replace('Rp ', ''));
+            if (input === null) return;
+            const value = parseFloat(input.replace(/\./g, '').replace(/,/g, '.')) || 0;
+            localStorage.setItem('totalHutangDagang', value);
+            updateLaporanKas();
+            showNotif('✅ Total Hutang Dagang: ' + formatRupiah(value), 'success');
+        }
+
+        // ============================================================
+        // UPLOAD SALDO
+        // ============================================================
+        function parseExcelMoneyToNumber(val) {
+            if (val === null || val === undefined) return 0;
+            if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+            let s = String(val).trim();
+            if (!s) return 0;
+            s = s.replace(/Rp/gi, '').replace(/\./g, '').replace(/,/g, '.').replace(/\s+/g, '');
+            const n = parseFloat(s);
+            return isNaN(n) ? 0 : n;
+        }
+
+        function readSaldoFromExcel(fileData) {
+            const workbook = XLSX.read(fileData, { type: 'array' });
+            const sheetNames = workbook.SheetNames;
+            if (!sheetNames || sheetNames.length === 0) return null;
+            for (const sheetName of sheetNames) {
+                const sheet = workbook.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+                if (!rows || rows.length === 0) continue;
+                let bcaOperasional = 0,
+                    bcaEscrow = 0,
+                    bcaLama = 0,
+                    brankas = 0;
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    for (let j = 0; j < row.length; j++) {
+                        const cell = String(row[j] || '').toLowerCase().trim();
+                        const nextVal = rows[i] && rows[i][j + 1] !== undefined ? rows[i][j + 1] : 0;
+                        if (cell.includes('bca') && cell.includes('operasional')) bcaOperasional = parseExcelMoneyToNumber(
+                            nextVal);
+                        else if (cell.includes('bca') && cell.includes('escrow')) bcaEscrow = parseExcelMoneyToNumber(
+                            nextVal);
+                        else if (cell.includes('bca') && cell.includes('lama')) bcaLama = parseExcelMoneyToNumber(nextVal);
+                        else if (cell.includes('brankas')) brankas = parseExcelMoneyToNumber(nextVal);
+                    }
+                }
+                if (bcaOperasional || bcaEscrow || bcaLama || brankas) {
+                    return { bcaOperasional, bcaEscrow, bcaLama, brankas };
+                }
+            }
+            return null;
+        }
+
+        async function syncSemuaSaldoToSupabase() {
+            const parseMoney = (id) => parseExcelMoneyToNumber(document.getElementById(id).textContent);
+            await saveSaldoToSupabase({
+                saldoAwal: Number(localStorage.getItem('saldoAwal')) || 0,
+                saldoAkhir: Number(localStorage.getItem('saldoAkhir')) || 0,
+                bcaOperasionalAwal: parseMoney('bcaOperasional'),
+                bcaEscrowAwal: parseMoney('bcaEscrow'),
+                bcaLamaAwal: parseMoney('bcaLama'),
+                brankasAwal: parseMoney('brankas'),
+                bcaOperasionalAkhir: parseMoney('bcaOperasionalAkhir'),
+                bcaEscrowAkhir: parseMoney('bcaEscrowAkhir'),
+                bcaLamaAkhir: parseMoney('bcaLamaAkhir'),
+                brankasAkhir: parseMoney('brankasAkhir')
+            }, document.getElementById('headerPeriode').textContent);
+        }
+
+        function handleUploadSaldoAwal(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const obj = readSaldoFromExcel(e.target.result);
+                if (!obj) { alert('Gagal baca data saldo awal'); return; }
+                const total = obj.bcaOperasional + obj.bcaEscrow + obj.bcaLama + obj.brankas;
+                localStorage.setItem('saldoAwal', total);
+                localStorage.setItem('bcaOperasionalAwal', obj.bcaOperasional);
+                localStorage.setItem('bcaEscrowAwal', obj.bcaEscrow);
+                localStorage.setItem('bcaLamaAwal', obj.bcaLama);
+                localStorage.setItem('brankasAwal', obj.brankas);
+                document.getElementById('bcaOperasional').textContent = formatRupiah(obj.bcaOperasional);
+                document.getElementById('bcaEscrow').textContent = formatRupiah(obj.bcaEscrow);
+                document.getElementById('bcaLama').textContent = formatRupiah(obj.bcaLama);
+                document.getElementById('brankas').textContent = formatRupiah(obj.brankas);
+                document.getElementById('totalSaldoAwal').textContent = formatRupiah(total);
+                updateLaporanKas();
+                await syncSemuaSaldoToSupabase();
+                alert('✅ Saldo Awal berhasil dimuat!');
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function handleUploadSaldoAkhir(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const obj = readSaldoFromExcel(e.target.result);
+                if (!obj) { alert('Gagal baca data saldo akhir'); return; }
+                const total = obj.bcaOperasional + obj.bcaEscrow + obj.bcaLama + obj.brankas;
+                localStorage.setItem('saldoAkhir', total);
+                localStorage.setItem('bcaOperasionalAkhir', obj.bcaOperasional);
+                localStorage.setItem('bcaEscrowAkhir', obj.bcaEscrow);
+                localStorage.setItem('bcaLamaAkhir', obj.bcaLama);
+                localStorage.setItem('brankasAkhir', obj.brankas);
+                document.getElementById('bcaOperasionalAkhir').textContent = formatRupiah(obj.bcaOperasional);
+                document.getElementById('bcaEscrowAkhir').textContent = formatRupiah(obj.bcaEscrow);
+                document.getElementById('bcaLamaAkhir').textContent = formatRupiah(obj.bcaLama);
+                document.getElementById('brankasAkhir').textContent = formatRupiah(obj.brankas);
+                document.getElementById('totalSaldoAkhir').textContent = formatRupiah(total);
+                updateLaporanKas();
+                await syncSemuaSaldoToSupabase();
+                alert('✅ Saldo Akhir berhasil dimuat!');
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // ============================================================
+        // PENGELUARAN BESAR
+        // ============================================================
+        function uploadBesar() {
+            const fileInput = document.getElementById('uploadBesar');
+            const file = fileInput.files[0];
+            if (!file) { alert('Pilih file Excel!'); return; }
+            const status = document.getElementById('besarStatus');
+            status.className = 'status loading';
+            status.textContent = '⏳ Membaca file...';
+            status.style.display = 'block';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const raw = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(raw, { type: 'array' });
+                    let sheetName = workbook.SheetNames.find(n => n.includes('Buku') || n.includes('besar'));
+                    if (!sheetName) sheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+                    let headerRow = -1;
+                    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+                        const row = rows[i];
+                        if (row.some(c => String(c).toUpperCase().includes('TANGGAL')) &&
+                            row.some(c => String(c).toUpperCase().includes('DEBET'))) {
+                            headerRow = i;
+                            break;
+                        }
+                    }
+                    if (headerRow === -1) throw new Error('Format tidak sesuai.');
+                    const newData = [];
+                    for (let i = headerRow + 1; i < rows.length; i++) {
+                        const row = rows[i];
+                        const tanggal = String(row[0] || '').trim();
+                        const keterangan = String(row[1] || '').trim();
+                        const debet = Math.abs(parseFloat(row[2]) || 0);
+                        const credit = Math.abs(parseFloat(row[3]) || 0);
+                        const saldo = parseFloat(row[4]) || (debet - credit);
+                        if (tanggal && tanggal !== '' && tanggal !== 'TOTAL') {
+                            newData.push({ tanggal, keterangan: keterangan || '-', debet, credit, saldo });
+                        }
+                    }
+                    if (newData.length === 0) throw new Error('Tidak ada data.');
+                    localStorage.setItem('gajahmas_pengeluaranBesar', JSON.stringify(newData));
+                    const totalCredit = newData.reduce((s, r) => s + r.credit, 0);
+                    localStorage.setItem('totalKasBesar', totalCredit);
+                    renderBesar(newData);
+                    status.className = 'status success';
+                    status.textContent = `✅ ${newData.length} record berhasil!`;
+                    syncPengeluaran();
+                    savePengeluaranBesarToSupabase(newData, document.getElementById('headerPeriode').textContent);
+                } catch (err) {
+                    status.className = 'status error';
+                    status.textContent = '❌ ' + err.message;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function renderBesar(data) {
+            const tbody = document.getElementById('besarBody');
+            if (!data || data.length === 0) {
+                tbody.innerHTML =
+                    `<tr><td colspan="7" style="text-align:center;padding:24px;color:#94a3b8;">Tidak ada data</td></tr>`;
+                return;
+            }
+            let html = '';
+            data.forEach((row, i) => {
+                html += `<tr>
+                    <td>${row.tanggal}</td>
+                    <td>${row.keterangan}</td>
+                    <td class="text-right">${row.debet > 0 ? formatRupiah(row.debet) : '-'}</td>
+                    <td class="text-right">${row.credit > 0 ? formatRupiah(row.credit) : '-'}</td>
+                    <td class="text-right">${formatRupiah(row.saldo)}</td>
+                    <td><button class="btn btn-outline btn-sm" onclick="editBesarRow(${i})"><i class="fas fa-edit"></i> Edit</button></td>
+                    <td><button class="btn btn-danger btn-sm" onclick="hapusBesarRow(${i})"><i class="fas fa-trash"></i> Hapus</button></td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function editBesarRow(index) {
+            const raw = localStorage.getItem('gajahmas_pengeluaranBesar');
+            if (!raw) return;
+            const rows = JSON.parse(raw);
+            if (!Array.isArray(rows) || !rows[index]) return;
+            const row = rows[index];
+            const newTanggal = prompt('Edit Tanggal:', row.tanggal);
+            if (newTanggal === null) return;
+            const newKeterangan = prompt('Edit Keterangan:', row.keterangan);
+            if (newKeterangan === null) return;
+            const newDebet = parseFloat(prompt('Edit Debet:', row.debet) || '0');
+            const newCredit = parseFloat(prompt('Edit Credit:', row.credit) || '0');
+            row.tanggal = String(newTanggal).trim();
+            row.keterangan = String(newKeterangan).trim() || '-';
+            row.debet = newDebet || 0;
+            row.credit = newCredit || 0;
+            row.saldo = row.debet - row.credit;
+            rows[index] = row;
+            localStorage.setItem('gajahmas_pengeluaranBesar', JSON.stringify(rows));
+            const totalCredit = rows.reduce((s, r) => s + (Number(r?.credit) || 0), 0);
+            localStorage.setItem('totalKasBesar', totalCredit);
+            renderBesar(rows);
+            syncPengeluaran();
+            savePengeluaranBesarToSupabase(rows, document.getElementById('headerPeriode').textContent);
+        }
+
+        function hapusBesarRow(index) {
+            const raw = localStorage.getItem('gajahmas_pengeluaranBesar');
+            if (!raw) return;
+            const rows = JSON.parse(raw);
+            if (!Array.isArray(rows) || !rows[index]) return;
+            if (!confirm(`Hapus record?`)) return;
+            rows.splice(index, 1);
+            localStorage.setItem('gajahmas_pengeluaranBesar', JSON.stringify(rows));
+            const totalCredit = rows.reduce((s, r) => s + (Number(r?.credit) || 0), 0);
+            localStorage.setItem('totalKasBesar', totalCredit);
+            renderBesar(rows);
+            syncPengeluaran();
+            savePengeluaranBesarToSupabase(rows, document.getElementById('headerPeriode').textContent);
+        }
+
+        // ============================================================
+        // PENGELUARAN KECIL
+        // ============================================================
+        function uploadKecil() {
+            const fileInput = document.getElementById('uploadKecil');
+            const file = fileInput.files[0];
+            if (!file) { alert('Pilih file Excel!'); return; }
+            const status = document.getElementById('kecilStatus');
+            status.className = 'status loading';
+            status.textContent = '⏳ Membaca file...';
+            status.style.display = 'block';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
+                    const rows = [];
+                    let tanggalTerakhir = '';
+                    json.forEach(row => {
+                        let tgl = row.TANGGAL || row.Tanggal || '';
+                        if (tgl) {
+                            if (tgl instanceof Date) tgl = tgl.toISOString().split('T')[0];
+                            else tgl = tgl.toString().trim();
+                            tanggalTerakhir = tgl;
+                        } else {
+                            tgl = tanggalTerakhir;
+                        }
+                        const ket = (row.KETERANGAN || row.Keterangan || '').toString().trim();
+                        const masuk = parseFloat(String(row.MASUK || row.Masuk || '0').replace(/[^0-9.-]/g, '')) || 0;
+                        const kantor = parseFloat(String(row['PENGELUARAN KANTOR'] || '0').replace(/[^0-9.-]/g, '')) ||
+                        0;
+                        const burung = parseFloat(String(row['PENGELUARAN BURUNG'] || '0').replace(/[^0-9.-]/g, '')) ||
+                        0;
+                        if (!ket) return;
+                        rows.push({ tanggal: tgl, ket, masuk, kantor, burung });
+                    });
+                    if (rows.length === 0) throw new Error('Tidak ada data.');
+                    localStorage.setItem('pengeluaranKecilRows', JSON.stringify(rows));
+                    const totalKeluar = rows.reduce((s, r) => s + r.kantor + r.burung, 0);
+                    localStorage.setItem('totalKasKecil', totalKeluar);
+                    renderKecil(rows);
+                    status.className = 'status success';
+                    status.textContent = `✅ ${rows.length} record berhasil!`;
+                    syncPengeluaran();
+                    savePengeluaranKecilToSupabase(rows, document.getElementById('headerPeriode').textContent);
+                } catch (err) {
+                    status.className = 'status error';
+                    status.textContent = '❌ ' + err.message;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function renderKecil(data) {
+            const tbody = document.getElementById('kecilBody');
+            if (!data || data.length === 0) {
+                tbody.innerHTML =
+                    `<tr><td colspan="7" style="text-align:center;padding:24px;color:#94a3b8;">Tidak ada data</td></tr>`;
+                return;
+            }
+            let html = '',
+                saldo = 0;
+            data.forEach(row => {
+                const keluar = row.kantor + row.burung;
+                saldo = saldo + row.masuk - keluar;
+                html += `<tr>
+                    <td>${row.tanggal}</td>
+                    <td>${row.ket}</td>
+                    <td class="text-right">${row.masuk ? formatRupiah(row.masuk) : '-'}</td>
+                    <td class="text-right">${row.kantor ? formatRupiah(row.kantor) : '-'}</td>
+                    <td class="text-right">${row.burung ? formatRupiah(row.burung) : '-'}</td>
+                    <td class="text-right">${keluar ? formatRupiah(keluar) : '-'}</td>
+                    <td class="text-right">${formatRupiah(saldo)}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // ============================================================
+        // LOAD STORED STATE (dari Supabase dan localStorage)
+        // ============================================================
+        async function loadStoredState() {
+            const periodeLabel = getPeriodeLabel();
+
+            try {
+                // 1) Saldo dari Supabase
+                const saldoSupabase = await loadSaldoFromSupabase(periodeLabel).catch(() => null);
+                if (saldoSupabase) {
+                    localStorage.setItem('saldoAwal', Number(saldoSupabase.saldoAwal) || 0);
+                    localStorage.setItem('saldoAkhir', Number(saldoSupabase.saldoAkhir) || 0);
+                    localStorage.setItem('bcaOperasionalAwal', Number(saldoSupabase.bcaOperasionalAwal) || 0);
+                    localStorage.setItem('bcaEscrowAwal', Number(saldoSupabase.bcaEscrowAwal) || 0);
+                    localStorage.setItem('bcaLamaAwal', Number(saldoSupabase.bcaLamaAwal) || 0);
+                    localStorage.setItem('brankasAwal', Number(saldoSupabase.brankasAwal) || 0);
+                    localStorage.setItem('bcaOperasionalAkhir', Number(saldoSupabase.bcaOperasionalAkhir) || 0);
+                    localStorage.setItem('bcaEscrowAkhir', Number(saldoSupabase.bcaEscrowAkhir) || 0);
+                    localStorage.setItem('bcaLamaAkhir', Number(saldoSupabase.bcaLamaAkhir) || 0);
+                    localStorage.setItem('brankasAkhir', Number(saldoSupabase.brankasAkhir) || 0);
+
+                    document.getElementById('bcaOperasional').textContent = formatRupiah(saldoSupabase.bcaOperasionalAwal);
+                    document.getElementById('bcaEscrow').textContent = formatRupiah(saldoSupabase.bcaEscrowAwal);
+                    document.getElementById('bcaLama').textContent = formatRupiah(saldoSupabase.bcaLamaAwal);
+                    document.getElementById('brankas').textContent = formatRupiah(saldoSupabase.brankasAwal);
+                    document.getElementById('totalSaldoAwal').textContent = formatRupiah(saldoSupabase.saldoAwal);
+
+                    document.getElementById('bcaOperasionalAkhir').textContent = formatRupiah(saldoSupabase.bcaOperasionalAkhir);
+                    document.getElementById('bcaEscrowAkhir').textContent = formatRupiah(saldoSupabase.bcaEscrowAkhir);
+                    document.getElementById('bcaLamaAkhir').textContent = formatRupiah(saldoSupabase.bcaLamaAkhir);
+                    document.getElementById('brankasAkhir').textContent = formatRupiah(saldoSupabase.brankasAkhir);
+                    document.getElementById('totalSaldoAkhir').textContent = formatRupiah(saldoSupabase.saldoAkhir);
+                }
+
+                // 2) Rekap dari Supabase
+                const rekapSupabase = await loadRekapUangMasukFromSupabase(periodeLabel).catch(() => null);
+                if (rekapSupabase && Array.isArray(rekapSupabase) && rekapSupabase.length > 0) {
+                    renderRekap(rekapSupabase);
+                }
+
+                // 3) Pengeluaran besar
+                const besarSupabase = await loadPengeluaranBesarFromSupabase(periodeLabel).catch(() => null);
+                if (besarSupabase && Array.isArray(besarSupabase) && besarSupabase.length > 0) {
+                    localStorage.setItem('gajahmas_pengeluaranBesar', JSON.stringify(besarSupabase));
+                    const totalCredit = besarSupabase.reduce((s, r) => s + (Number(r?.credit) || 0), 0);
+                    localStorage.setItem('totalKasBesar', totalCredit);
+                    renderBesar(besarSupabase);
+                }
+
+                // 4) Pengeluaran kecil
+                const kecilSupabase = await loadPengeluaranKecilFromSupabase(periodeLabel).catch(() => null);
+                if (kecilSupabase && Array.isArray(kecilSupabase) && kecilSupabase.length > 0) {
+                    localStorage.setItem('pengeluaranKecilRows', JSON.stringify(kecilSupabase));
+                    const totalKeluar = kecilSupabase.reduce((s, r) => s + (Number(r?.kantor) || 0) + (Number(r?.burung) || 0), 0);
+                    localStorage.setItem('totalKasKecil', totalKeluar);
+                    renderKecil(kecilSupabase);
+                }
+
+                // Update UI lainnya
+                const saldoAwal = Number(localStorage.getItem('saldoAwal')) || 0;
+                const saldoAkhir = Number(localStorage.getItem('saldoAkhir')) || 0;
+                document.getElementById('totalSaldoAwal').textContent = formatRupiah(saldoAwal);
+                document.getElementById('totalSaldoAkhir').textContent = formatRupiah(saldoAkhir);
+
+                const totalHutangDagang = Number(localStorage.getItem('totalHutangDagang')) || 0;
+                document.getElementById('totalHutangDagang').textContent = formatRupiah(totalHutangDagang);
+
+                // Jika tidak ada data besar dari Supabase, coba dari localStorage
+                if (!besarSupabase || besarSupabase.length === 0) {
+                    const rawBesar = localStorage.getItem('gajahmas_pengeluaranBesar');
+                    if (rawBesar) {
+                        try {
+                            const data = JSON.parse(rawBesar);
+                            if (Array.isArray(data) && data.length > 0) {
+                                renderBesar(data);
+                                const totalCredit = data.reduce((s, r) => s + r.credit, 0);
+                                localStorage.setItem('totalKasBesar', totalCredit);
+                            }
+                        } catch (e) {}
+                    }
+                }
+
+                if (!kecilSupabase || kecilSupabase.length === 0) {
+                    const rawKecil = localStorage.getItem('pengeluaranKecilRows');
+                    if (rawKecil) {
+                        try {
+                            const data = JSON.parse(rawKecil);
+                            if (Array.isArray(data) && data.length > 0) {
+                                renderKecil(data);
+                                const totalKeluar = data.reduce((s, r) => s + r.kantor + r.burung, 0);
+                                localStorage.setItem('totalKasKecil', totalKeluar);
+                            }
+                        } catch (e) {}
+                    }
+                }
+
+                updateLaporanKas();
+
+            } catch (e) {
+                console.error('Error di loadStoredState:', e);
+                // Tetap jalankan update minimal
+                updateLaporanKas();
+            }
+        }
+
+        // ============================================================
+        // RESTORE REKAP DARI LOCALSTORAGE (jika supabase gagal)
+        // ============================================================
+        (function restoreRekapUangMasuk() {
+            try {
+                const saved = loadPersistedRekap();
+                if (saved && Array.isArray(saved) && saved.length > 0) {
+                    // renderRekap akan memanggil updateLaporanKas()
+                    renderRekap(saved);
+                }
+            } catch (e) {
+                console.warn('Gagal restore rekap uang masuk:', e);
+            }
+        })();
+
+        // ============================================================
+        // INISIALISASI UTAMA
+        // ============================================================
+        (async function init() {
+            await loadStoredState();
+            // Pastikan tab pertama aktif setelah semua data dimuat
+            setTimeout(initFirstTab, 100);
+        })();
+
+        // ============================================================
+        // PWA INSTALL PROMPT
+        // ============================================================
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallButton();
+        });
+
+        function promptInstall() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                console.log(`Hasil install: ${choiceResult.outcome}`);
+                deferredPrompt = null;
+            });
+        }
+
+        function showInstallButton() {
+            let installBtn = document.getElementById('installBtn');
+            if (!installBtn) {
+                installBtn = document.createElement('button');
+                installBtn.id = 'installBtn';
+                installBtn.innerHTML = '<i class="fas fa-download"></i> Install Aplikasi';
+                installBtn.style.cssText = `
+                    position: fixed;
+                    bottom: 80px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: #2563eb;
+                    color: white;
+                    border: none;
+                    border-radius: 100px;
+                    padding: 12px 24px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    font-family: 'Inter', sans-serif;
+                    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+                    z-index: 9999;
+                    display: none;
+                    cursor: pointer;
+                    gap: 8px;
+                    align-items: center;
+                `;
+                installBtn.onclick = promptInstall;
+                document.body.appendChild(installBtn);
+            }
+            installBtn.style.display = 'flex';
+        }
+
+        console.log('✅ Dashboard siap!');
+    </script>
+</body>
+</html>
