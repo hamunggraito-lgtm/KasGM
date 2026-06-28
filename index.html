@@ -2344,4 +2344,245 @@
                         const ket = (row.KETERANGAN || row.Keterangan || '').toString().trim();
                         const masuk = parseFloat(String(row.MASUK || row.Masuk || '0').replace(/[^0-9.-]/g, '')) || 0;
                         const kantor = parseFloat(String(row['PENGELUARAN KANTOR'] || '0').replace(/[^0-9.-]/g, '')) ||
-  
+                        0;
+                        const burung = parseFloat(String(row['PENGELUARAN BURUNG'] || '0').replace(/[^0-9.-]/g, '')) ||
+                        0;
+                        if (!ket) return;
+                        rows.push({ tanggal: tgl, ket, masuk, kantor, burung });
+                    });
+                    if (rows.length === 0) throw new Error('Tidak ada data.');
+                    localStorage.setItem('pengeluaranKecilRows', JSON.stringify(rows));
+                    const totalKeluar = rows.reduce((s, r) => s + r.kantor + r.burung, 0);
+                    localStorage.setItem('totalKasKecil', totalKeluar);
+                    renderKecil(rows);
+                    status.className = 'status success';
+                    status.textContent = `✅ ${rows.length} record berhasil!`;
+                    syncPengeluaran();
+                    savePengeluaranKecilToSupabase(rows, document.getElementById('headerPeriode').textContent);
+                } catch (err) {
+                    status.className = 'status error';
+                    status.textContent = '❌ ' + err.message;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function renderKecil(data) {
+            const tbody = document.getElementById('kecilBody');
+            if (!data || data.length === 0) {
+                tbody.innerHTML =
+                    `<tr><td colspan="7" style="text-align:center;padding:24px;color:#94a3b8;">Tidak ada data</td></tr>`;
+                return;
+            }
+            let html = '',
+                saldo = 0;
+            data.forEach(row => {
+                const keluar = row.kantor + row.burung;
+                saldo = saldo + row.masuk - keluar;
+                html += `<tr>
+                    <td>${row.tanggal}</td>
+                    <td>${row.ket}</td>
+                    <td class="text-right">${row.masuk ? formatRupiah(row.masuk) : '-'}</td>
+                    <td class="text-right">${row.kantor ? formatRupiah(row.kantor) : '-'}</td>
+                    <td class="text-right">${row.burung ? formatRupiah(row.burung) : '-'}</td>
+                    <td class="text-right">${keluar ? formatRupiah(keluar) : '-'}</td>
+                    <td class="text-right">${formatRupiah(saldo)}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // ============================================================
+        // LOAD STORED STATE (dari Supabase dan localStorage)
+        // ============================================================
+        async function loadStoredState() {
+            const periodeLabel = getPeriodeLabel();
+
+            try {
+                // 1) Saldo dari Supabase
+                const saldoSupabase = await loadSaldoFromSupabase(periodeLabel).catch(() => null);
+                if (saldoSupabase) {
+                    localStorage.setItem('saldoAwal', Number(saldoSupabase.saldoAwal) || 0);
+                    localStorage.setItem('saldoAkhir', Number(saldoSupabase.saldoAkhir) || 0);
+                    localStorage.setItem('bcaOperasionalAwal', Number(saldoSupabase.bcaOperasionalAwal) || 0);
+                    localStorage.setItem('bcaEscrowAwal', Number(saldoSupabase.bcaEscrowAwal) || 0);
+                    localStorage.setItem('bcaLamaAwal', Number(saldoSupabase.bcaLamaAwal) || 0);
+                    localStorage.setItem('brankasAwal', Number(saldoSupabase.brankasAwal) || 0);
+                    localStorage.setItem('bcaOperasionalAkhir', Number(saldoSupabase.bcaOperasionalAkhir) || 0);
+                    localStorage.setItem('bcaEscrowAkhir', Number(saldoSupabase.bcaEscrowAkhir) || 0);
+                    localStorage.setItem('bcaLamaAkhir', Number(saldoSupabase.bcaLamaAkhir) || 0);
+                    localStorage.setItem('brankasAkhir', Number(saldoSupabase.brankasAkhir) || 0);
+
+                    document.getElementById('bcaOperasional').textContent = formatRupiah(saldoSupabase.bcaOperasionalAwal);
+                    document.getElementById('bcaEscrow').textContent = formatRupiah(saldoSupabase.bcaEscrowAwal);
+                    document.getElementById('bcaLama').textContent = formatRupiah(saldoSupabase.bcaLamaAwal);
+                    document.getElementById('brankas').textContent = formatRupiah(saldoSupabase.brankasAwal);
+                    document.getElementById('totalSaldoAwal').textContent = formatRupiah(saldoSupabase.saldoAwal);
+
+                    // sinkkan juga ke input manual
+                    document.getElementById('saldoAwal_bcaOperasional').value = saldoSupabase.bcaOperasionalAwal;
+                    document.getElementById('saldoAwal_bcaEscrow').value = saldoSupabase.bcaEscrowAwal;
+                    document.getElementById('saldoAwal_bcaLama').value = saldoSupabase.bcaLamaAwal;
+                    document.getElementById('saldoAwal_brankas').value = saldoSupabase.brankasAwal;
+                    updateTotalSaldoAwalManual();
+
+
+                    document.getElementById('bcaOperasionalAkhir').textContent = formatRupiah(saldoSupabase.bcaOperasionalAkhir);
+                    document.getElementById('bcaEscrowAkhir').textContent = formatRupiah(saldoSupabase.bcaEscrowAkhir);
+                    document.getElementById('bcaLamaAkhir').textContent = formatRupiah(saldoSupabase.bcaLamaAkhir);
+                    document.getElementById('brankasAkhir').textContent = formatRupiah(saldoSupabase.brankasAkhir);
+                    document.getElementById('totalSaldoAkhir').textContent = formatRupiah(saldoSupabase.saldoAkhir);
+                }
+
+                // 2) Rekap dari Supabase
+                const rekapSupabase = await loadRekapUangMasukFromSupabase(periodeLabel).catch(() => null);
+                if (rekapSupabase && Array.isArray(rekapSupabase) && rekapSupabase.length > 0) {
+                    renderRekap(rekapSupabase);
+                }
+
+                // 3) Pengeluaran besar
+                const besarSupabase = await loadPengeluaranBesarFromSupabase(periodeLabel).catch(() => null);
+                if (besarSupabase && Array.isArray(besarSupabase) && besarSupabase.length > 0) {
+                    localStorage.setItem('gajahmas_pengeluaranBesar', JSON.stringify(besarSupabase));
+                    const totalCredit = besarSupabase.reduce((s, r) => s + (Number(r?.credit) || 0), 0);
+                    localStorage.setItem('totalKasBesar', totalCredit);
+                    renderBesar(besarSupabase);
+                }
+
+                // 4) Pengeluaran kecil
+                const kecilSupabase = await loadPengeluaranKecilFromSupabase(periodeLabel).catch(() => null);
+                if (kecilSupabase && Array.isArray(kecilSupabase) && kecilSupabase.length > 0) {
+                    localStorage.setItem('pengeluaranKecilRows', JSON.stringify(kecilSupabase));
+                    const totalKeluar = kecilSupabase.reduce((s, r) => s + (Number(r?.kantor) || 0) + (Number(r?.burung) || 0), 0);
+                    localStorage.setItem('totalKasKecil', totalKeluar);
+                    renderKecil(kecilSupabase);
+                }
+
+                // Update UI lainnya
+                const saldoAwal = Number(localStorage.getItem('saldoAwal')) || 0;
+                const saldoAkhir = Number(localStorage.getItem('saldoAkhir')) || 0;
+                document.getElementById('totalSaldoAwal').textContent = formatRupiah(saldoAwal);
+                document.getElementById('totalSaldoAkhir').textContent = formatRupiah(saldoAkhir);
+
+                const totalHutangDagang = Number(localStorage.getItem('totalHutangDagang')) || 0;
+                document.getElementById('totalHutangDagang').textContent = formatRupiah(totalHutangDagang);
+
+                // Jika tidak ada data besar dari Supabase, coba dari localStorage
+                if (!besarSupabase || besarSupabase.length === 0) {
+                    const rawBesar = localStorage.getItem('gajahmas_pengeluaranBesar');
+                    if (rawBesar) {
+                        try {
+                            const data = JSON.parse(rawBesar);
+                            if (Array.isArray(data) && data.length > 0) {
+                                renderBesar(data);
+                                const totalCredit = data.reduce((s, r) => s + r.credit, 0);
+                                localStorage.setItem('totalKasBesar', totalCredit);
+                            }
+                        } catch (e) {}
+                    }
+                }
+
+                if (!kecilSupabase || kecilSupabase.length === 0) {
+                    const rawKecil = localStorage.getItem('pengeluaranKecilRows');
+                    if (rawKecil) {
+                        try {
+                            const data = JSON.parse(rawKecil);
+                            if (Array.isArray(data) && data.length > 0) {
+                                renderKecil(data);
+                                const totalKeluar = data.reduce((s, r) => s + r.kantor + r.burung, 0);
+                                localStorage.setItem('totalKasKecil', totalKeluar);
+                            }
+                        } catch (e) {}
+                    }
+                }
+
+                updateLaporanKas();
+
+            } catch (e) {
+                console.error('Error di loadStoredState:', e);
+                // Tetap jalankan update minimal
+                updateLaporanKas();
+            }
+        }
+
+        // ============================================================
+        // RESTORE REKAP DARI LOCALSTORAGE (jika supabase gagal)
+        // ============================================================
+        (function restoreRekapUangMasuk() {
+            try {
+                const saved = loadPersistedRekap();
+                if (saved && Array.isArray(saved) && saved.length > 0) {
+                    // renderRekap akan memanggil updateLaporanKas()
+                    renderRekap(saved);
+                }
+            } catch (e) {
+                console.warn('Gagal restore rekap uang masuk:', e);
+            }
+        })();
+
+        // ============================================================
+        // INISIALISASI UTAMA
+        // ============================================================
+        (async function init() {
+            await loadStoredState();
+            // Pastikan input manual ikut terisi jika data hanya dari localStorage
+            syncSaldoInputsFromLocalStorage();
+            // Pastikan tab pertama aktif setelah semua data dimuat
+            setTimeout(initFirstTab, 100);
+        })();
+
+        // ============================================================
+        // PWA INSTALL PROMPT
+        // ============================================================
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallButton();
+        });
+
+        function promptInstall() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                console.log(`Hasil install: ${choiceResult.outcome}`);
+                deferredPrompt = null;
+            });
+        }
+
+        function showInstallButton() {
+            let installBtn = document.getElementById('installBtn');
+            if (!installBtn) {
+                installBtn = document.createElement('button');
+                installBtn.id = 'installBtn';
+                installBtn.innerHTML = '<i class="fas fa-download"></i> Install Aplikasi';
+                installBtn.style.cssText = `
+                    position: fixed;
+                    bottom: 80px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: #2563eb;
+                    color: white;
+                    border: none;
+                    border-radius: 100px;
+                    padding: 12px 24px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    font-family: 'Inter', sans-serif;
+                    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+                    z-index: 9999;
+                    display: none;
+                    cursor: pointer;
+                    gap: 8px;
+                    align-items: center;
+                `;
+                installBtn.onclick = promptInstall;
+                document.body.appendChild(installBtn);
+            }
+            installBtn.style.display = 'flex';
+        }
+
+        console.log('✅ Dashboard siap!');
+    </script>
+</body>
+</html>
