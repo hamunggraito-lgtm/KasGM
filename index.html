@@ -718,12 +718,7 @@
             <button class="tab-btn" data-tab="tabRekap">
                 <i class="fas fa-file-invoice"></i> Rekap Uang Masuk
             </button>
-            <button class="tab-btn" data-tab="tabPengeluaranBesar">
-                <i class="fas fa-arrow-up"></i> Pengeluaran Besar
-            </button>
-            <button class="tab-btn" data-tab="tabPengeluaranKecil">
-                <i class="fas fa-coins"></i> Pengeluaran Kecil
-            </button>
+
             <button class="tab-btn" data-tab="tabPenjualan">
                 <i class="fas fa-store"></i> Penjualan
             </button>
@@ -826,6 +821,13 @@
                 <button class="btn btn-danger" onclick="inputHutangDagang()">
                     <i class="fas fa-edit"></i> Input Hutang Dagang
                 </button>
+                <button class="btn btn-success" onclick="inputKasBesar()">
+                    <i class="fas fa-plus"></i> Input Total Kas Besar
+                </button>
+                <button class="btn btn-warning" onclick="inputKasKecil()">
+                    <i class="fas fa-plus"></i> Input Total Kas Kecil
+                </button>
+
             </div>
         </div>
 
@@ -853,59 +855,8 @@
             <div id="tableContainerRekap" class="table-wrapper" style="display:none;"></div>
         </div>
 
-        <!-- TAB 3: PENGELUARAN BESAR -->
-        <div id="tabPengeluaranBesar" class="tab-content">
-            <div style="margin-bottom:12px;">
-                <h3 style="font-size:16px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:8px;">
-                    <i class="fas fa-arrow-up" style="color:#dc2626;"></i> Pengeluaran Kas Besar
-                </h3>
-                <p style="font-size:12px;color:#64748b;">Upload data pengeluaran besar dari Excel (format: Buku Besar)</p>
-            </div>
-            <div class="upload-section">
-                <label><i class="fas fa-file-excel"></i> Upload Excel</label>
-                <input type="file" id="uploadBesar" accept=".xlsx,.xls">
-                <button class="btn btn-success" onclick="uploadBesar()"><i class="fas fa-upload"></i> Upload</button>
-                <span style="font-size:11px;color:#94a3b8;">| Sheet "Buku Besar"</span>
-            </div>
-            <div id="besarStatus" class="status" style="margin-top:10px;"></div>
-            <div class="table-wrapper" style="margin-top:14px;">
-                <table>
-                    <thead>
-                        <tr><th>Tanggal</th><th>Keterangan</th><th class="text-right">Debet</th><th class="text-right">Credit</th><th class="text-right">Saldo</th><th style="width:140px;">Edit</th><th style="width:120px;">Hapus</th></tr>
-                    </thead>
-                    <tbody id="besarBody">
-                        <tr><td colspan="7" style="text-align:center;padding:24px;color:#94a3b8;">Upload file Excel untuk menampilkan data</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
 
-        <!-- TAB 4: PENGELUARAN KECIL -->
-        <div id="tabPengeluaranKecil" class="tab-content">
-            <div style="margin-bottom:12px;">
-                <h3 style="font-size:16px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:8px;">
-                    <i class="fas fa-coins" style="color:#d97706;"></i> Pengeluaran Kas Kecil
-                </h3>
-                <p style="font-size:12px;color:#64748b;">Upload data kas kecil (format: Tanggal, Keterangan, Masuk, Pengeluaran Kantor, Pengeluaran Burung)</p>
-            </div>
-            <div class="upload-section">
-                <label><i class="fas fa-file-excel"></i> Upload Excel</label>
-                <input type="file" id="uploadKecil" accept=".xlsx,.xls">
-                <button class="btn btn-warning" onclick="uploadKecil()"><i class="fas fa-upload"></i> Upload</button>
-                <span style="font-size:11px;color:#94a3b8;">| Sheet pertama</span>
-            </div>
-            <div id="kecilStatus" class="status" style="margin-top:10px;"></div>
-            <div class="table-wrapper" style="margin-top:14px;">
-                <table>
-                    <thead>
-                        <tr><th>Tanggal</th><th>Keterangan</th><th class="text-right">Masuk</th><th class="text-right">Kantor</th><th class="text-right">Burung</th><th class="text-right">Total Keluar</th><th class="text-right">Saldo</th></tr>
-                    </thead>
-                    <tbody id="kecilBody">
-                        <tr><td colspan="7" style="text-align:center;padding:24px;color:#94a3b8;">Upload file Excel untuk menampilkan data</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+
 
         <!-- TAB 5: PENJUALAN -->
         <div id="tabPenjualan" class="tab-content">
@@ -1546,61 +1497,7 @@
                 .sort((a, b) => String(a.dateLabel).localeCompare(String(b.dateLabel)));
         }
 
-        async function savePengeluaranBesarToSupabase(rows, periodeLabel) {
-            return syncDeleteAndInsert(
-                'pengeluaran_besar',
-                periodeLabel,
-                rows || [],
-                (r) => ({
-                    periode_label: periodeLabel,
-                    tanggal: r.tanggal,
-                    keterangan: r.keterangan,
-                    debet: Number(r.debet) || 0,
-                    credit: Number(r.credit) || 0,
-                    saldo: Number(r.saldo) || 0
-                })
-            );
-        }
 
-        async function loadPengeluaranBesarFromSupabase(periodeLabel) {
-            const data = await loadTableByPeriode('pengeluaran_besar', periodeLabel);
-            if (!data || data.length === 0) return null;
-            return data.map(r => ({
-                tanggal: r.tanggal,
-                keterangan: r.keterangan,
-                debet: Number(r.debet) || 0,
-                credit: Number(r.credit) || 0,
-                saldo: Number(r.saldo) || 0
-            }));
-        }
-
-        async function savePengeluaranKecilToSupabase(rows, periodeLabel) {
-            return syncDeleteAndInsert(
-                'pengeluaran_kecil',
-                periodeLabel,
-                rows || [],
-                (r) => ({
-                    periode_label: periodeLabel,
-                    tanggal: r.tanggal,
-                    keterangan: r.ket,
-                    masuk: Number(r.masuk) || 0,
-                    kantor: Number(r.kantor) || 0,
-                    burung: Number(r.burung) || 0
-                })
-            );
-        }
-
-        async function loadPengeluaranKecilFromSupabase(periodeLabel) {
-            const data = await loadTableByPeriode('pengeluaran_kecil', periodeLabel);
-            if (!data || data.length === 0) return null;
-            return data.map(r => ({
-                tanggal: r.tanggal,
-                ket: r.keterangan,
-                masuk: Number(r.masuk) || 0,
-                kantor: Number(r.kantor) || 0,
-                burung: Number(r.burung) || 0
-            }));
-        }
 
         async function saveSaldoToSupabase({ saldoAwal, saldoAkhir, bcaOperasionalAwal, bcaEscrowAwal, bcaLamaAwal, brankasAwal, bcaOperasionalAkhir, bcaEscrowAkhir, bcaLamaAkhir, brankasAkhir }, periodeLabel) {
             if (!supabaseClient) return { ok: false, offline: true };
@@ -1894,35 +1791,9 @@
             const totalPemasukan = penjualanTunai + pembayaranPiutang;
 
             const saldoAwal = Number(localStorage.getItem('saldoAwal')) || 0;
-            let kasBesarFinal = Number(localStorage.getItem('totalKasBesar')) || 0;
-            let kasKecilFinal = Number(localStorage.getItem('totalKasKecil')) || 0;
+            const kasBesarFinal = Number(localStorage.getItem('totalKasBesar')) || 0;
+            const kasKecilFinal = Number(localStorage.getItem('totalKasKecil')) || 0;
             const totalHutangDagang = Number(localStorage.getItem('totalHutangDagang')) || 0;
-
-            if (kasBesarFinal === 0) {
-                const rawBesar = localStorage.getItem('gajahmas_pengeluaranBesar');
-                if (rawBesar) {
-                    try {
-                        const rows = JSON.parse(rawBesar);
-                        if (Array.isArray(rows) && rows.length > 0) {
-                            kasBesarFinal = rows.reduce((sum, r) => sum + (Number(r?.credit) || 0), 0);
-                            localStorage.setItem('totalKasBesar', kasBesarFinal);
-                        }
-                    } catch (e) {}
-                }
-            }
-            if (kasKecilFinal === 0) {
-                const rawKecil = localStorage.getItem('pengeluaranKecilRows');
-                if (rawKecil) {
-                    try {
-                        const rows = JSON.parse(rawKecil);
-                        if (Array.isArray(rows) && rows.length > 0) {
-                            kasKecilFinal = rows.reduce((sum, r) => sum + (Number(r?.kantor) || 0) + (Number(r?.burung) ||
-                                0), 0);
-                            localStorage.setItem('totalKasKecil', kasKecilFinal);
-                        }
-                    } catch (e) {}
-                }
-            }
 
             const totalKeluar = kasBesarFinal + kasKecilFinal + totalHutangDagang;
             const saldoFinal = saldoAwal + totalPemasukan - totalKeluar;
@@ -1961,6 +1832,26 @@
             localStorage.setItem('totalHutangDagang', value);
             updateLaporanKas();
             showNotif('✅ Total Hutang Dagang: ' + formatRupiah(value), 'success');
+        }
+
+        function inputKasBesar() {
+            const current = Number(localStorage.getItem('totalKasBesar')) || 0;
+            const input = prompt('Masukkan TOTAL Kas Besar:', formatRupiah(current).replace('Rp ', ''));
+            if (input === null) return;
+            const value = parseFloat(input.replace(/\./g, '').replace(/,/g, '.')) || 0;
+            localStorage.setItem('totalKasBesar', value);
+            updateLaporanKas();
+            showNotif('✅ Total Kas Besar: ' + formatRupiah(value), 'success');
+        }
+
+        function inputKasKecil() {
+            const current = Number(localStorage.getItem('totalKasKecil')) || 0;
+            const input = prompt('Masukkan TOTAL Kas Kecil / Harian:', formatRupiah(current).replace('Rp ', ''));
+            if (input === null) return;
+            const value = parseFloat(input.replace(/\./g, '').replace(/,/g, '.')) || 0;
+            localStorage.setItem('totalKasKecil', value);
+            updateLaporanKas();
+            showNotif('✅ Total Kas Kecil: ' + formatRupiah(value), 'success');
         }
 
         // ============================================================
@@ -2188,209 +2079,7 @@
         }
 
 
-        // ============================================================
-        // PENGELUARAN BESAR
-        // ============================================================
-        function uploadBesar() {
-            const fileInput = document.getElementById('uploadBesar');
-            const file = fileInput.files[0];
-            if (!file) { alert('Pilih file Excel!'); return; }
-            const status = document.getElementById('besarStatus');
-            status.className = 'status loading';
-            status.textContent = '⏳ Membaca file...';
-            status.style.display = 'block';
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const raw = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(raw, { type: 'array' });
-                    let sheetName = workbook.SheetNames.find(n => n.includes('Buku') || n.includes('besar'));
-                    if (!sheetName) sheetName = workbook.SheetNames[0];
-                    const sheet = workbook.Sheets[sheetName];
-                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-                    let headerRow = -1;
-                    for (let i = 0; i < Math.min(rows.length, 10); i++) {
-                        const row = rows[i];
-                        if (row.some(c => String(c).toUpperCase().includes('TANGGAL')) &&
-                            row.some(c => String(c).toUpperCase().includes('DEBET'))) {
-                            headerRow = i;
-                            break;
-                        }
-                    }
-                    if (headerRow === -1) throw new Error('Format tidak sesuai.');
-                    const newData = [];
-                    for (let i = headerRow + 1; i < rows.length; i++) {
-                        const row = rows[i];
-                        const tanggal = String(row[0] || '').trim();
-                        const keterangan = String(row[1] || '').trim();
-                        const debet = Math.abs(parseFloat(row[2]) || 0);
-                        const credit = Math.abs(parseFloat(row[3]) || 0);
-                        const saldo = parseFloat(row[4]) || (debet - credit);
-                        if (tanggal && tanggal !== '' && tanggal !== 'TOTAL') {
-                            newData.push({ tanggal, keterangan: keterangan || '-', debet, credit, saldo });
-                        }
-                    }
-                    if (newData.length === 0) throw new Error('Tidak ada data.');
-                    localStorage.setItem('gajahmas_pengeluaranBesar', JSON.stringify(newData));
-                    const totalCredit = newData.reduce((s, r) => s + r.credit, 0);
-                    localStorage.setItem('totalKasBesar', totalCredit);
-                    renderBesar(newData);
-                    status.className = 'status success';
-                    status.textContent = `✅ ${newData.length} record berhasil!`;
-                    syncPengeluaran();
-                    savePengeluaranBesarToSupabase(newData, document.getElementById('headerPeriode').textContent);
-                } catch (err) {
-                    status.className = 'status error';
-                    status.textContent = '❌ ' + err.message;
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function renderBesar(data) {
-            const tbody = document.getElementById('besarBody');
-            if (!data || data.length === 0) {
-                tbody.innerHTML =
-                    `<tr><td colspan="7" style="text-align:center;padding:24px;color:#94a3b8;">Tidak ada data</td></tr>`;
-                return;
-            }
-            let html = '';
-            data.forEach((row, i) => {
-                html += `<tr>
-                    <td>${row.tanggal}</td>
-                    <td>${row.keterangan}</td>
-                    <td class="text-right">${row.debet > 0 ? formatRupiah(row.debet) : '-'}</td>
-                    <td class="text-right">${row.credit > 0 ? formatRupiah(row.credit) : '-'}</td>
-                    <td class="text-right">${formatRupiah(row.saldo)}</td>
-                    <td><button class="btn btn-outline btn-sm" onclick="editBesarRow(${i})"><i class="fas fa-edit"></i> Edit</button></td>
-                    <td><button class="btn btn-danger btn-sm" onclick="hapusBesarRow(${i})"><i class="fas fa-trash"></i> Hapus</button></td>
-                </tr>`;
-            });
-            tbody.innerHTML = html;
-        }
-
-        function editBesarRow(index) {
-            const raw = localStorage.getItem('gajahmas_pengeluaranBesar');
-            if (!raw) return;
-            const rows = JSON.parse(raw);
-            if (!Array.isArray(rows) || !rows[index]) return;
-            const row = rows[index];
-            const newTanggal = prompt('Edit Tanggal:', row.tanggal);
-            if (newTanggal === null) return;
-            const newKeterangan = prompt('Edit Keterangan:', row.keterangan);
-            if (newKeterangan === null) return;
-            const newDebet = parseFloat(prompt('Edit Debet:', row.debet) || '0');
-            const newCredit = parseFloat(prompt('Edit Credit:', row.credit) || '0');
-            row.tanggal = String(newTanggal).trim();
-            row.keterangan = String(newKeterangan).trim() || '-';
-            row.debet = newDebet || 0;
-            row.credit = newCredit || 0;
-            row.saldo = row.debet - row.credit;
-            rows[index] = row;
-            localStorage.setItem('gajahmas_pengeluaranBesar', JSON.stringify(rows));
-            const totalCredit = rows.reduce((s, r) => s + (Number(r?.credit) || 0), 0);
-            localStorage.setItem('totalKasBesar', totalCredit);
-            renderBesar(rows);
-            syncPengeluaran();
-            savePengeluaranBesarToSupabase(rows, document.getElementById('headerPeriode').textContent);
-        }
-
-        function hapusBesarRow(index) {
-            const raw = localStorage.getItem('gajahmas_pengeluaranBesar');
-            if (!raw) return;
-            const rows = JSON.parse(raw);
-            if (!Array.isArray(rows) || !rows[index]) return;
-            if (!confirm(`Hapus record?`)) return;
-            rows.splice(index, 1);
-            localStorage.setItem('gajahmas_pengeluaranBesar', JSON.stringify(rows));
-            const totalCredit = rows.reduce((s, r) => s + (Number(r?.credit) || 0), 0);
-            localStorage.setItem('totalKasBesar', totalCredit);
-            renderBesar(rows);
-            syncPengeluaran();
-            savePengeluaranBesarToSupabase(rows, document.getElementById('headerPeriode').textContent);
-        }
-
-        // ============================================================
-        // PENGELUARAN KECIL
-        // ============================================================
-        function uploadKecil() {
-            const fileInput = document.getElementById('uploadKecil');
-            const file = fileInput.files[0];
-            if (!file) { alert('Pilih file Excel!'); return; }
-            const status = document.getElementById('kecilStatus');
-            status.className = 'status loading';
-            status.textContent = '⏳ Membaca file...';
-            status.style.display = 'block';
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const json = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
-                    const rows = [];
-                    let tanggalTerakhir = '';
-                    json.forEach(row => {
-                        let tgl = row.TANGGAL || row.Tanggal || '';
-                        if (tgl) {
-                            if (tgl instanceof Date) tgl = tgl.toISOString().split('T')[0];
-                            else tgl = tgl.toString().trim();
-                            tanggalTerakhir = tgl;
-                        } else {
-                            tgl = tanggalTerakhir;
-                        }
-                        const ket = (row.KETERANGAN || row.Keterangan || '').toString().trim();
-                        const masuk = parseFloat(String(row.MASUK || row.Masuk || '0').replace(/[^0-9.-]/g, '')) || 0;
-                        const kantor = parseFloat(String(row['PENGELUARAN KANTOR'] || '0').replace(/[^0-9.-]/g, '')) ||
-                        0;
-                        const burung = parseFloat(String(row['PENGELUARAN BURUNG'] || '0').replace(/[^0-9.-]/g, '')) ||
-                        0;
-                        if (!ket) return;
-                        rows.push({ tanggal: tgl, ket, masuk, kantor, burung });
-                    });
-                    if (rows.length === 0) throw new Error('Tidak ada data.');
-                    localStorage.setItem('pengeluaranKecilRows', JSON.stringify(rows));
-                    const totalKeluar = rows.reduce((s, r) => s + r.kantor + r.burung, 0);
-                    localStorage.setItem('totalKasKecil', totalKeluar);
-                    renderKecil(rows);
-                    status.className = 'status success';
-                    status.textContent = `✅ ${rows.length} record berhasil!`;
-                    syncPengeluaran();
-                    savePengeluaranKecilToSupabase(rows, document.getElementById('headerPeriode').textContent);
-                } catch (err) {
-                    status.className = 'status error';
-                    status.textContent = '❌ ' + err.message;
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function renderKecil(data) {
-            const tbody = document.getElementById('kecilBody');
-            if (!data || data.length === 0) {
-                tbody.innerHTML =
-                    `<tr><td colspan="7" style="text-align:center;padding:24px;color:#94a3b8;">Tidak ada data</td></tr>`;
-                return;
-            }
-            let html = '',
-                saldo = 0;
-            data.forEach(row => {
-                const keluar = row.kantor + row.burung;
-                saldo = saldo + row.masuk - keluar;
-                html += `<tr>
-                    <td>${row.tanggal}</td>
-                    <td>${row.ket}</td>
-                    <td class="text-right">${row.masuk ? formatRupiah(row.masuk) : '-'}</td>
-                    <td class="text-right">${row.kantor ? formatRupiah(row.kantor) : '-'}</td>
-                    <td class="text-right">${row.burung ? formatRupiah(row.burung) : '-'}</td>
-                    <td class="text-right">${keluar ? formatRupiah(keluar) : '-'}</td>
-                    <td class="text-right">${formatRupiah(saldo)}</td>
-                </tr>`;
-            });
-            tbody.innerHTML = html;
-        }
 
         // ============================================================
         // LOAD STORED STATE (dari Supabase dan localStorage)
@@ -2440,26 +2129,11 @@
                     renderRekap(rekapSupabase);
                 }
 
-                // 3) Pengeluaran besar
-                const besarSupabase = await loadPengeluaranBesarFromSupabase(periodeLabel).catch(() => null);
-                if (besarSupabase && Array.isArray(besarSupabase) && besarSupabase.length > 0) {
-                    localStorage.setItem('gajahmas_pengeluaranBesar', JSON.stringify(besarSupabase));
-                    const totalCredit = besarSupabase.reduce((s, r) => s + (Number(r?.credit) || 0), 0);
-                    localStorage.setItem('totalKasBesar', totalCredit);
-                    renderBesar(besarSupabase);
-                }
-
-                // 4) Pengeluaran kecil
-                const kecilSupabase = await loadPengeluaranKecilFromSupabase(periodeLabel).catch(() => null);
-                if (kecilSupabase && Array.isArray(kecilSupabase) && kecilSupabase.length > 0) {
-                    localStorage.setItem('pengeluaranKecilRows', JSON.stringify(kecilSupabase));
-                    const totalKeluar = kecilSupabase.reduce((s, r) => s + (Number(r?.kantor) || 0) + (Number(r?.burung) || 0), 0);
-                    localStorage.setItem('totalKasKecil', totalKeluar);
-                    renderKecil(kecilSupabase);
-                }
+                // 3-4) Pengeluaran besar/kecil tidak lagi dimuat (tab dihapus). Totalnya pakai input tombol di tab Laporan Kas (localStorage).
 
                 // Update UI lainnya
                 const saldoAwal = Number(localStorage.getItem('saldoAwal')) || 0;
+
                 const saldoAkhir = Number(localStorage.getItem('saldoAkhir')) || 0;
                 document.getElementById('totalSaldoAwal').textContent = formatRupiah(saldoAwal);
                 document.getElementById('totalSaldoAkhir').textContent = formatRupiah(saldoAkhir);
@@ -2467,36 +2141,11 @@
                 const totalHutangDagang = Number(localStorage.getItem('totalHutangDagang')) || 0;
                 document.getElementById('totalHutangDagang').textContent = formatRupiah(totalHutangDagang);
 
-                // Jika tidak ada data besar dari Supabase, coba dari localStorage
-                if (!besarSupabase || besarSupabase.length === 0) {
-                    const rawBesar = localStorage.getItem('gajahmas_pengeluaranBesar');
-                    if (rawBesar) {
-                        try {
-                            const data = JSON.parse(rawBesar);
-                            if (Array.isArray(data) && data.length > 0) {
-                                renderBesar(data);
-                                const totalCredit = data.reduce((s, r) => s + r.credit, 0);
-                                localStorage.setItem('totalKasBesar', totalCredit);
-                            }
-                        } catch (e) {}
-                    }
-                }
-
-                if (!kecilSupabase || kecilSupabase.length === 0) {
-                    const rawKecil = localStorage.getItem('pengeluaranKecilRows');
-                    if (rawKecil) {
-                        try {
-                            const data = JSON.parse(rawKecil);
-                            if (Array.isArray(data) && data.length > 0) {
-                                renderKecil(data);
-                                const totalKeluar = data.reduce((s, r) => s + r.kantor + r.burung, 0);
-                                localStorage.setItem('totalKasKecil', totalKeluar);
-                            }
-                        } catch (e) {}
-                    }
-                }
+                // Pengeluaran besar/kecil sudah tidak menggunakan upload/tabel maupun sync, sehingga tidak perlu fallback.
 
                 updateLaporanKas();
+
+
 
             } catch (e) {
                 console.error('Error di loadStoredState:', e);
@@ -2586,3 +2235,4 @@
     </script>
 </body>
 </html>
+
